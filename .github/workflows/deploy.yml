@@ -1,9 +1,6 @@
 name: Deploy
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       environment:
@@ -14,47 +11,18 @@ on:
           - development
           - staging
           - production
+  push:
+    tags:
+      - 'v*'
 
 env:
   PHP_VERSION: '8.4'
-  BUN_VERSION: '1.3.5'
   THEME_ROOT: 'web/themes/custom/books'
 
 jobs:
-  qa-gate:
-    name: Verify CI Passed
+  composer:
+    name: Composer Install
     runs-on: ubuntu-latest
-    steps:
-      - name: Check CI workflow status
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "🔍 Checking CI status for commit ${{ github.sha }}..."
-
-          # Get the CI workflow runs for this commit
-          CI_STATUS=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&status=completed" \
-            --jq '.workflow_runs[0].conclusion // "not_found"')
-
-          echo "CI workflow status: $CI_STATUS"
-
-          if [ "$CI_STATUS" = "success" ]; then
-            echo "✅ CI workflow passed for this commit"
-          elif [ "$CI_STATUS" = "not_found" ]; then
-            echo "❌ No CI workflow run found for this commit"
-            echo "Please ensure CI has run and passed before deploying."
-            exit 1
-          else
-            echo "❌ CI workflow did not pass (status: $CI_STATUS)"
-            echo "Please fix CI issues before deploying."
-            exit 1
-          fi
-
-  build:
-    name: Build Release
-    runs-on: ubuntu-latest
-    needs: qa-gate
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,13 +45,37 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Install Composer dependencies (production)
-        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+      - name: Validate composer.json
+        run: composer validate --no-check-all --ansi
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-reqs
+
+      - name: Cache installed vendor
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+  theme-build:
+    name: Theme Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         working-directory: ${{ env.THEME_ROOT }}
@@ -93,8 +85,283 @@ jobs:
         working-directory: ${{ env.THEME_ROOT }}
         run: bun run build
 
-      - name: Clean up node_modules
-        run: rm -rf ${{ env.THEME_ROOT }}/node_modules
+      - name: Cache built theme
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.THEME_ROOT }}/build
+          key: theme-built-${{ github.run_id }}
+
+  phpcs:
+    name: PHPCS
+    runs-on: ubuntu-latest
+    needs: composer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Run PHPCS
+        run: |
+          php vendor/bin/phpcs -p --colors \
+            --standard="Drupal,DrupalPractice" \
+            --extensions="php,inc,module,install,test,profile,theme" \
+            --ignore='web/core,**/node_modules/**' \
+            web/**/custom
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    needs: composer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Run PHPStan
+        run: |
+          php vendor/bin/phpstan analyze web/**/custom \
+            --no-progress \
+            --configuration phpstan.neon \
+            --error-format table \
+            --memory-limit 4G
+
+  phpunit-unit:
+    name: PHPUnit (Unit)
+    runs-on: ubuntu-latest
+    needs: composer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Run PHPUnit unit tests
+        run: php vendor/bin/phpunit --testsuite unit --no-progress --colors=always
+
+  phpunit-kernel:
+    name: PHPUnit (Kernel)
+    runs-on: ubuntu-latest
+    needs: composer
+    services:
+      mysql:
+        image: mariadb:10.11
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: drupal
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Run PHPUnit kernel tests
+        env:
+          SIMPLETEST_DB: mysql://root:root@127.0.0.1:3306/drupal
+          SIMPLETEST_BASE_URL: http://localhost
+        run: php vendor/bin/phpunit --testsuite kernel --no-progress --colors=always
+
+  phpunit-functional:
+    name: PHPUnit (Functional)
+    runs-on: ubuntu-latest
+    needs: composer
+    services:
+      mysql:
+        image: mariadb:10.11
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: drupal
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Prepare test environment
+        run: |
+          mkdir -p web/sites/simpletest/browser_output
+          mkdir -p web/sites/default/files
+          chmod -R 777 web/sites/simpletest
+          chmod -R 777 web/sites/default
+
+      - name: Start PHP built-in server
+        env:
+          DRUPAL_DB_NAME: drupal
+          DRUPAL_DB_USER: root
+          DRUPAL_DB_PASS: root
+          DRUPAL_DB_HOST: 127.0.0.1
+          DRUPAL_DB_PORT: '3306'
+          DRUPAL_HASH_SALT: test_hash_salt
+          DRUPAL_BASE_URL: localhost
+        run: |
+          cd web && php -S localhost:8080 .ht.router.php &
+          sleep 2
+
+      - name: Run PHPUnit functional tests
+        env:
+          SIMPLETEST_DB: mysql://root:root@127.0.0.1:3306/drupal
+          SIMPLETEST_BASE_URL: http://localhost:8080
+          BROWSERTEST_OUTPUT_DIRECTORY: web/sites/simpletest/browser_output
+          DRUPAL_DB_NAME: drupal
+          DRUPAL_DB_USER: root
+          DRUPAL_DB_PASS: root
+          DRUPAL_DB_HOST: 127.0.0.1
+          DRUPAL_DB_PORT: '3306'
+          DRUPAL_HASH_SALT: test_hash_salt
+          DRUPAL_BASE_URL: localhost
+        run: php vendor/bin/phpunit --testsuite functional --no-progress --colors=always
+
+  build:
+    name: Build Release
+    runs-on: ubuntu-latest
+    needs: [theme-build, phpcs, phpstan, phpunit-unit, phpunit-kernel, phpunit-functional]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
+          coverage: none
+
+      - name: Restore installed vendor
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            vendor
+            web/autoload.php
+            web/index.php
+            web/.ht.router.php
+            web/core
+            web/modules/contrib
+            web/profiles/contrib
+            web/themes/contrib
+            web/libraries
+            drush/Commands
+          key: vendor-installed-${{ github.run_id }}
+
+      - name: Strip dev dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+
+      - name: Restore built theme
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.THEME_ROOT }}/build
+          key: theme-built-${{ github.run_id }}
 
       - name: Create release archive
         run: |
@@ -108,12 +375,11 @@ jobs:
             vendor \
             web
 
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+      - name: Cache release archive
+        uses: actions/cache/save@v4
         with:
-          name: release
-          path: build/dist/*.tar.gz
-          retention-days: 1
+          path: build/dist
+          key: release-${{ github.run_id }}
 
   deploy:
     name: Deploy to ${{ inputs.environment || 'production' }}
@@ -124,11 +390,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download release artifact
-        uses: actions/download-artifact@v4
+      - name: Restore release archive
+        uses: actions/cache/restore@v4
         with:
-          name: release
           path: build/dist
+          key: release-${{ github.run_id }}
 
       - name: Setup SSH
         run: |
