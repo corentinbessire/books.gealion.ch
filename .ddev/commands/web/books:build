@@ -9,4 +9,4 @@ if [ ! -d "/var/www/html/web/themes/custom/books" ]; then
     exit 1
 fi
 cd /var/www/html/web/themes/custom/books || exit
-npm run build
+bun run build

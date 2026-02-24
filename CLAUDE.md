@@ -19,23 +19,23 @@ ddev drush cim     # Import config
 
 ### Theme (books)
 
-The theme is located at `web/themes/custom/books/` and uses Vite + Tailwind CSS v4.
+The theme is located at `web/themes/custom/books/` and uses Vite + Tailwind CSS v4 with **Bun** as the package manager.
 
-**Important:** Run npm commands inside DDEV (not on the host) to ensure correct native binaries.
+**Important:** Run bun commands inside DDEV (not on the host) to ensure correct native binaries.
 
 ```bash
 ddev books:build          # Build the theme
 ddev books:watch          # Watch mode (dev server)
-ddev books:npm <command>  # Run any npm command in theme directory
-ddev books:npx <command>  # Run any npx command in theme directory
+ddev books:bun <command>  # Run any bun command in theme directory
+ddev books:bunx <command> # Run any bunx command in theme directory
 ddev books:node <command> # Run any node command in theme directory
 ```
 
 If you get rollup errors about missing native modules, reinstall inside DDEV:
 
 ```bash
-rm -rf web/themes/custom/books/node_modules web/themes/custom/books/package-lock.json
-ddev books:npm install
+rm -rf web/themes/custom/books/node_modules web/themes/custom/books/bun.lock
+ddev books:bun install
 ```
 
 ### Code Quality

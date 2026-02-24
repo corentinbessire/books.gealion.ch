@@ -1,11 +1,11 @@
 #!/bin/bash
-## Description: Run npm commands in the Sillage theme directory
-## Usage: books:npm  <npm-command> [args]
-## Example: "ddev books:npm install" or "ddev books:npm run build"
+## Description: Run bunx commands in the Books theme directory
+## Usage: books:bunx <bunx-command> [args]
+## Example: "ddev books:bunx vite build"
 
 if [ ! -d "/var/www/html/web/themes/custom/books" ]; then
     echo "Error: Theme 'books' not found in web/themes/custom/"
     exit 1
 fi
 cd /var/www/html/web/themes/custom/books || exit
-exec npm "$@"
+exec bunx "$@"

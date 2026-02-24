@@ -17,7 +17,7 @@ on:
 
 env:
   PHP_VERSION: '8.4'
-  NODE_VERSION: '24'
+  BUN_VERSION: 'latest'
   THEME_ROOT: 'web/themes/custom/books'
 
 jobs:
@@ -80,20 +80,18 @@ jobs:
       - name: Install Composer dependencies (production)
         run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ env.THEME_ROOT }}/package-lock.json
+          bun-version: ${{ env.BUN_VERSION }}
 
-      - name: Install npm dependencies
+      - name: Install dependencies
         working-directory: ${{ env.THEME_ROOT }}
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build theme
         working-directory: ${{ env.THEME_ROOT }}
-        run: npm run build
+        run: bun run build
 
       - name: Clean up node_modules
         run: rm -rf ${{ env.THEME_ROOT }}/node_modules

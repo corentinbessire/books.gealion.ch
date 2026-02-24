@@ -11,7 +11,7 @@ on:
       - 'composer.json'
       - 'composer.lock'
       - 'web/themes/custom/books/package.json'
-      - 'web/themes/custom/books/package-lock.json'
+      - 'web/themes/custom/books/bun.lock'
   # Allow manual trigger
   workflow_dispatch:
 
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install npm dependencies
         working-directory: ${{ env.THEME_ROOT }}
-        run: npm ci
+        run: npm install
 
       - name: Run security audit
         env:

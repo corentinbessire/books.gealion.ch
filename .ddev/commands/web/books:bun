@@ -1,11 +1,11 @@
 #!/bin/bash
-## Description: Run npx commands in the Sillage theme directory
-## Usage: books:npx  <npx-command> [args]
-## Example: "ddev books:npx install" or "ddev books:npx run build"
+## Description: Run bun commands in the Books theme directory
+## Usage: books:bun <bun-command> [args]
+## Example: "ddev books:bun install" or "ddev books:bun run build"
 
 if [ ! -d "/var/www/html/web/themes/custom/books" ]; then
     echo "Error: Theme 'books' not found in web/themes/custom/"
     exit 1
 fi
 cd /var/www/html/web/themes/custom/books || exit
-exec npx "$@"
+exec bun "$@"
