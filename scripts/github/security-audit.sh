@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Security Audit Script
-# Checks composer and npm dependencies for known vulnerabilities
+# Checks composer and bun dependencies for known vulnerabilities
 # Creates/updates GitHub issues for both direct and transitive dependencies
 
 set -e
@@ -84,7 +84,12 @@ find_requiring_composer_packages() {
 
 find_requiring_npm_packages() {
     local package="$1"
-    npm why "$package" 2>/dev/null | head -5 | grep -oE '[a-zA-Z0-9@/_-]+' | head -3 | tr '\n' ', ' | sed 's/,$//' || echo "unknown"
+    # Parse bun.lock to find which packages depend on this one
+    if [ -f "bun.lock" ]; then
+        grep -B2 "\"$package\"" bun.lock 2>/dev/null | grep -oE '"[a-zA-Z0-9@/_-]+"' | head -3 | tr -d '"' | tr '\n' ', ' | sed 's/,$//' || echo "unknown"
+    else
+        echo "unknown"
+    fi
 }
 
 # Find existing open issue for a dependency
@@ -155,9 +160,7 @@ ${advisories}
 
 Check available versions: \`composer show ${dep_name} --all\`"
     else
-        body+="Run \`npm update ${dep_name}\` or \`npm install ${dep_name}@latest\` to update to a patched version.
-
-Check available versions: \`npm view ${dep_name} versions\`"
+        body+="Run \`bun update ${dep_name}\` or \`bun add ${dep_name}@latest\` to update to a patched version."
     fi
 
     body+="
@@ -285,23 +288,36 @@ run_composer_audit() {
     fi
 }
 
-# Run npm audit
-run_npm_audit() {
+# Run bun audit
+run_bun_audit() {
     echo ""
-    echo "📦 Running npm security audit..."
+    echo "📦 Running Bun security audit..."
 
     cd "$THEME_ROOT"
 
     local audit_output
     local audit_exit_code=0
 
-    audit_output=$(npm audit --json 2>/dev/null) || audit_exit_code=$?
+    audit_output=$(bun audit --json 2>/dev/null) || audit_exit_code=$?
 
-    # npm audit returns non-zero if vulnerabilities found
-    local vuln_count=$(echo "$audit_output" | jq -r '.metadata.vulnerabilities.total // 0')
+    # bun audit returns non-zero if vulnerabilities found
+    if [ $audit_exit_code -eq 0 ]; then
+        echo -e "${GREEN}  ✓ No vulnerabilities found in Bun dependencies${NC}"
+        cd - > /dev/null
+        close_resolved_issues "npm" ""
+        return 0
+    fi
 
-    if [ "$vuln_count" -eq 0 ]; then
-        echo -e "${GREEN}  ✓ No vulnerabilities found in npm dependencies${NC}"
+    # Parse vulnerabilities from bun audit JSON output
+    local vuln_count=$(echo "$audit_output" | jq -r '
+        if .metadata.vulnerabilities.total then .metadata.vulnerabilities.total
+        elif .vulnerabilities then .vulnerabilities | keys | length
+        else [.[] | arrays | .[]] | length
+        end // 0
+    ' 2>/dev/null)
+
+    if [ "$vuln_count" -eq 0 ] 2>/dev/null; then
+        echo -e "${GREEN}  ✓ No vulnerabilities found in Bun dependencies${NC}"
         cd - > /dev/null
         close_resolved_issues "npm" ""
         return 0
@@ -312,10 +328,11 @@ run_npm_audit() {
     # Clear temp file
     rm -f /tmp/vulnerable_npm_deps.txt
 
-    # Get all vulnerable packages (both direct and transitive)
+    # Get all vulnerable packages - handle both npm-style and raw advisory formats
     local all_packages=$(echo "$audit_output" | jq -r '
         if .vulnerabilities then .vulnerabilities | keys[]
-        else .advisories | .[].module_name
+        elif .advisories then .advisories | .[].module_name
+        else [.[] | arrays | .[].module_name // .[].name] | unique[]
         end
     ' 2>/dev/null | sort -u)
 
@@ -336,20 +353,23 @@ run_npm_audit() {
         # Track vulnerable dependency
         echo "$package" >> /tmp/vulnerable_npm_deps.txt
 
-        # Get installed version
-        local installed_version=$(npm list "$package" --depth=100 --json 2>/dev/null | jq -r ".dependencies[\"$package\"].version // \"unknown\"")
-        if [ "$installed_version" = "unknown" ] || [ -z "$installed_version" ]; then
-            installed_version=$(npm list "$package" --all --json 2>/dev/null | jq -r ".. | .\"$package\"?.version? // empty" 2>/dev/null | head -1 || echo "unknown")
+        # Get installed version from bun.lock
+        local installed_version=$(bun pm ls 2>/dev/null | grep "$package@" | head -1 | grep -oE '@[0-9][0-9.]*' | head -1 | tr -d '@' || echo "unknown")
+        if [ -z "$installed_version" ]; then
+            installed_version="unknown"
         fi
 
-        # Get advisory info
+        # Get advisory info - handle both formats
         local package_advisories=$(echo "$audit_output" | jq -r --arg pkg "$package" '
             if .vulnerabilities then
                 .vulnerabilities[$pkg] |
                 "- **Severity:** \(.severity // "unknown")\n- **Range:** \(.range // "N/A")\n- **Fix available:** \(.fixAvailable // "unknown")\n"
-            else
+            elif .advisories then
                 .advisories | to_entries[] | select(.value.module_name == $pkg) | .value |
                 "- **\(.title // "Unknown")**\n  - Severity: \(.severity // "N/A")\n  - Vulnerable versions: \(.vulnerable_versions // "N/A")\n  - Recommendation: \(.recommendation // "N/A")\n  - URL: \(.url // "N/A")\n"
+            else
+                .[$pkg] // (.. | arrays | .[] | select(.module_name == $pkg or .name == $pkg)) |
+                "- **\(.title // "Unknown")**\n  - Severity: \(.severity // "N/A")\n  - Vulnerable versions: \(.vulnerable_versions // "N/A")\n  - URL: \(.url // "N/A")\n"
             end
         ' 2>/dev/null)
 
@@ -371,7 +391,7 @@ run_npm_audit() {
 main() {
     ensure_labels
     run_composer_audit
-    run_npm_audit
+    run_bun_audit
 
     echo ""
     echo "✅ Security audit complete"

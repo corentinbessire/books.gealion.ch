@@ -17,7 +17,7 @@ on:
 
 env:
   PHP_VERSION: '8.4'
-  NODE_VERSION: '24'
+  BUN_VERSION: 'latest'
   THEME_ROOT: 'web/themes/custom/books'
 
 permissions:
@@ -39,17 +39,17 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pdo, mysql, pdo_mysql, gd
           coverage: none
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction --ignore-platform-reqs
 
-      - name: Install npm dependencies
+      - name: Install Bun dependencies
         working-directory: ${{ env.THEME_ROOT }}
-        run: npm install
+        run: bun install --frozen-lockfile
 
       - name: Run security audit
         env:
