@@ -236,7 +236,8 @@ composer update ${dep_name} --with-dependencies
             --label "$ISSUE_LABEL" \
             --label "$ISSUE_LABEL_DRUPAL" \
             --label "$dep_type_label" \
-            --label "$priority_label"
+            --label "$priority_label" \
+            --assignee corentinbessire
     fi
 }
 

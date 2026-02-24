@@ -191,7 +191,8 @@ Check available versions: \`composer show ${dep_name} --all\`"
             --body "$body" \
             --label "$ISSUE_LABEL" \
             --label "$dep_type" \
-            --label "$dep_type_label"
+            --label "$dep_type_label" \
+            --assignee corentinbessire
     fi
 }
 
