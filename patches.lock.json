@@ -1,24 +1,12 @@
 {
-    "_hash": "2db235d6d6f6304229c678444b706927379010a104c537a5d544a5e0c89b3c5f",
+    "_hash": "b8cbc9c412ff8dd91291bca8da9e8e9b1aed7235214d29030d9b3e853692e241",
     "patches": {
         "drupal/webp": [
             {
                 "package": "drupal/webp",
                 "description": "#3561953 - PHP 8.4 implicit nullable & constructor parameter",
-                "url": "https://git.drupalcode.org/project/webp/-/merge_requests/54.diff",
+                "url": "https://git.drupalcode.org/project/webp/-/commit/d3130cfa2a28a2953d51bcb32049e8928497062e.diff",
                 "sha256": "cde2ca2cc45f9c918cb74c14c0f0a1dc286e924c91091efcb697c268c5155eb4",
-                "depth": 1,
-                "extra": {
-                    "provenance": "root"
-                }
-            }
-        ],
-        "drupal/rabbit_hole": [
-            {
-                "package": "drupal/rabbit_hole",
-                "description": "#3516167 - PHP 8.4 implicit nullable & constructor parameter",
-                "url": "https://www.drupal.org/files/issues/2025-11-10/3516167_8.4_compatibility.patch",
-                "sha256": "99b401a601fc92193ee12122d54774a8f6128bd6b36c3c3942645005996112de",
                 "depth": 1,
                 "extra": {
                     "provenance": "root"
