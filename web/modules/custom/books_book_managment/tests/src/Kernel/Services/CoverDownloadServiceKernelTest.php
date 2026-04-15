@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\books_book_managment\Kernel\Services;
 
+use Drupal\books_book_managment\Services\CoverDownloadService;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -52,7 +53,7 @@ class CoverDownloadServiceKernelTest extends KernelTestBase {
    * Tests service instantiation from the container.
    */
   public function testServiceInstantiation(): void {
-    $this->assertNotNull($this->coverDownloadService);
+    $this->assertInstanceOf(CoverDownloadService::class, $this->coverDownloadService);
   }
 
   /**

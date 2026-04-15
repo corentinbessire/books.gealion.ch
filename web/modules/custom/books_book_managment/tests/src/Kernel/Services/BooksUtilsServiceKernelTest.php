@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\books_book_managment\Kernel\Services;
 
+use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
@@ -93,7 +94,7 @@ class BooksUtilsServiceKernelTest extends KernelTestBase {
    * Tests service instantiation from the container.
    */
   public function testServiceInstantiation(): void {
-    $this->assertNotNull($this->booksUtilsService);
+    $this->assertInstanceOf(BooksUtilsService::class, $this->booksUtilsService);
   }
 
   /**
