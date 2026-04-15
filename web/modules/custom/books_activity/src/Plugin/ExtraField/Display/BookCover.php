@@ -61,7 +61,13 @@ class BookCover extends ExtraFieldPlusDisplayBase implements ContainerFactoryPlu
     $settings = $this->getEntityExtraFieldSettings();
 
     $book = $this->getFirstReference($entity, 'field_book');
+    if (!$book) {
+      return [];
+    }
     $cover = $this->getFirstReference($book, 'field_cover');
+    if (!$cover) {
+      return [];
+    }
     return $this->entityTypeManager->getViewBuilder('media')
       ->view($cover, $settings['image_style']);
   }

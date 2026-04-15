@@ -5,4 +5,4 @@
 ## Example: "ddev cy:test"
 
 cd tests || exit
-npm start
+npm run cy:run

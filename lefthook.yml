@@ -1,0 +1,11 @@
+pre-commit:
+  commands:
+    phpcs-drupal:
+      glob: "*.{php,module,inc,install,theme,profile}"
+      run: ddev phpcs --standard=Drupal --extensions=php,module,inc,install,theme,profile {staged_files}
+    phpcs-drupal-practice:
+      glob: "*.{php,module,inc,install,theme,profile}"
+      run: ddev phpcs --standard=DrupalPractice --extensions=php,module,inc,install,theme,profile {staged_files}
+    phpstan:
+      glob: "*.{php,module,inc,install,theme,profile}"
+      run: ddev phpstan analyse {staged_files}

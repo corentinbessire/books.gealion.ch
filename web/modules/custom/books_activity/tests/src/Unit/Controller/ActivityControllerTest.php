@@ -85,16 +85,12 @@ class ActivityControllerTest extends UnitTestCase {
     \Drupal::setContainer($container);
 
     $this->controller = new ActivityController(
+      $this->entityTypeManager,
       $this->messenger,
       $this->booksUtilsService,
       $this->isbnToolsService,
       $requestStack
     );
-
-    // Set the entityTypeManager property directly since the controller
-    // accesses it as a property, not through the lazy-loading method.
-    $ref = new \ReflectionProperty($this->controller, 'entityTypeManager');
-    $ref->setValue($this->controller, $this->entityTypeManager);
   }
 
   /**

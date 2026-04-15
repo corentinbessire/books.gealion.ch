@@ -3,6 +3,7 @@
 namespace Drupal\books_activity\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\isbn\IsbnToolsServiceInterface;
@@ -18,6 +19,8 @@ class ActivityController extends ControllerBase {
   /**
    * The controller constructor.
    *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
    * @param \Drupal\Core\Messenger\MessengerInterface $messengerInterface
    *   Drupal Messenger Service.
    * @param \Drupal\books_book_managment\Services\BooksUtilsService $booksUtilsService
@@ -28,11 +31,13 @@ class ActivityController extends ControllerBase {
    *   The request stack.
    */
   public function __construct(
+    EntityTypeManagerInterface $entityTypeManager,
     protected MessengerInterface $messengerInterface,
     protected BooksUtilsService $booksUtilsService,
     private IsbnToolsServiceInterface $isbnToolsService,
     protected RequestStack $requestStack,
   ) {
+    $this->entityTypeManager = $entityTypeManager;
   }
 
   /**
@@ -40,6 +45,7 @@ class ActivityController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('entity_type.manager'),
       $container->get('messenger'),
       $container->get('books.books_utils'),
       $container->get('isbn.isbn_service'),

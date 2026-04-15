@@ -8,10 +8,15 @@
  *
  * Usage: cy.drupalLogin('admin')
  *
- * @param {string} username - The Drupal username to log in as.
+ * Passing 'admin' logs in as uid 1 (the superadmin), regardless of the
+ * actual username configured in Drupal. Any other value is treated as a
+ * Drupal username.
+ *
+ * @param {string} username - 'admin' for uid 1, or an exact Drupal username.
  */
 Cypress.Commands.add('drupalLogin', (username) => {
-  cy.exec(`ddev drush uli --name=${username} --uri=https://books.ddev.site`).then((result) => {
+  const flag = username === 'admin' ? '--uid=1' : `--name=${username}`;
+  cy.exec(`drush uli ${flag} --uri=https://books.ddev.site`).then((result) => {
     const loginUrl = result.stdout.trim();
     cy.visit(loginUrl);
   });
@@ -32,6 +37,6 @@ Cypress.Commands.add('drupalLogout', () => {
  */
 Cypress.Commands.add('drupalCreateNode', (type, title) => {
   cy.exec(
-    `ddev drush eval "\\Drupal::entityTypeManager()->getStorage('node')->create(['type' => '${type}', 'title' => '${title}'])->save();"`,
+    `drush eval "\\Drupal::entityTypeManager()->getStorage('node')->create(['type' => '${type}', 'title' => '${title}'])->save();"`,
   );
 });

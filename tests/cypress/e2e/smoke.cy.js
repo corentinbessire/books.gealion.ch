@@ -9,9 +9,10 @@ describe('Smoke Tests', () => {
     cy.get('body').should('be.visible');
   });
 
-  it('anonymous user sees login link', () => {
-    cy.visit('/');
-    cy.get('a[href*="/user/login"]').should('exist');
+  it('anonymous user can access login page', () => {
+    cy.visit('/user/login');
+    cy.get('body').should('be.visible');
+    cy.get('input[name="name"]').should('exist');
   });
 
   it('authenticated user can access dashboard', () => {
