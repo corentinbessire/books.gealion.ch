@@ -89,20 +89,28 @@ class AddBookForm extends FormBase {
         </button>
 
         <template x-teleport="body">
-          <div x-show="open" x-cloak style="display:none" class="fixed inset-0 z-50 flex flex-col bg-black/90">
-            <div class="flex items-center justify-between p-4 text-white">
-              <span class="text-sm">{{ hint }}</span>
-              <button type="button" x-on:click="stop()"
-                class="rounded-md border border-white/40 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/10">
-                {{ close_label }}
-              </button>
+          <div x-show="open" x-cloak style="display:none" class="fixed inset-0 z-50 bg-black">
+            <!-- Camera preview fills the whole screen. -->
+            <video x-ref="video" playsinline muted class="absolute inset-0 h-full w-full object-cover"></video>
+
+            <!-- Aiming frame, dimming everything around it. -->
+            <div class="pointer-events-none absolute inset-x-8 top-1/2 h-36 -translate-y-1/2 rounded-xl border-2 border-white/80 shadow-[0_0_0_100vmax_rgba(0,0,0,0.45)]"></div>
+
+            <!-- Floating close button (respects the notch / safe areas). -->
+            <button type="button" x-on:click="stop()" aria-label="{{ close_label }}"
+              class="absolute z-10 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 active:scale-95"
+              style="top:max(1rem,env(safe-area-inset-top));right:max(1rem,env(safe-area-inset-right));">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-6 w-6" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <!-- Status line at the bottom; only one shows at a time. -->
+            <div class="absolute inset-x-0 bottom-0 p-6 text-center text-sm" style="padding-bottom:max(1.5rem,env(safe-area-inset-bottom))">
+              <p x-show="starting" class="text-white/80">{{ starting_label }}</p>
+              <p x-show="error" x-text="error" class="text-red-300"></p>
+              <p x-show="!starting && !error" class="text-white/90">{{ hint }}</p>
             </div>
-            <div class="relative flex flex-1 items-center justify-center overflow-hidden">
-              <video x-ref="video" playsinline muted class="h-full w-full object-cover"></video>
-              <div class="pointer-events-none absolute inset-x-8 top-1/2 h-32 -translate-y-1/2 rounded-lg border-2 border-white/80"></div>
-            </div>
-            <p x-show="starting" class="p-4 text-center text-sm text-white/70">{{ starting_label }}</p>
-            <p x-show="error" x-text="error" class="p-4 text-center text-sm text-red-300"></p>
           </div>
         </template>
         TWIG,
