@@ -44,13 +44,13 @@ export default function isbnScanner() {
       const reader = new BrowserMultiFormatReader(hints);
 
       try {
-        this.controls = await reader.decodeFromConstraints(
+        const controls = await reader.decodeFromConstraints(
           { video: { facingMode: 'environment' } },
           video,
-          (result, _error, controls) => {
+          (result, _error, frameControls) => {
             // Keep a handle so stop() can release the camera at any time.
             if (!this.controls) {
-              this.controls = controls;
+              this.controls = frameControls;
             }
             if (!result) {
               return;
@@ -64,6 +64,14 @@ export default function isbnScanner() {
             this.onResult(code);
           },
         );
+        // The camera only finishes starting up here. If the user already
+        // closed the overlay during startup (e.g. while the permission prompt
+        // was showing), release the stream now instead of leaking it.
+        if (!this.open) {
+          controls.stop();
+          return;
+        }
+        this.controls = controls;
       } catch (error) {
         this.handleError(error);
       } finally {
