@@ -3,6 +3,9 @@
 @source "../templates/**/*.twig";
 @source "../components/**/*.twig";
 @source "../js/**/*.js";
+/* Custom modules render Twig/inline templates that use theme utility classes. */
+@source "../../../../modules/custom/**/*.php";
+@source "../../../../modules/custom/**/*.twig";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LITERARY ANTIQUARIAN THEME
