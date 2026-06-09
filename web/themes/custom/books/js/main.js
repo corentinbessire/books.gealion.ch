@@ -1,6 +1,9 @@
-import '../css/tailwind.css'
-import Alpine from 'alpinejs'
+import '../css/tailwind.css';
+import Alpine from 'alpinejs';
+import isbnScanner from './components/isbn-scanner.js';
 
-window.Alpine = Alpine
+window.Alpine = Alpine;
 
-Alpine.start()
+Alpine.data('isbnScanner', isbnScanner);
+
+Alpine.start();

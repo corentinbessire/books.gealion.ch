@@ -50,6 +50,11 @@
     border-color: var(--color-stone-300);
   }
 
+  /* Hide Alpine-managed elements until Alpine initializes (prevents flash). */
+  [x-cloak] {
+    display: none !important;
+  }
+
   html {
     font-family: var(--font-body);
     background: var(--color-parchment);
