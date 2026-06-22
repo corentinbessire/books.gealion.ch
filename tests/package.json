@@ -9,5 +9,9 @@
   },
   "devDependencies": {
     "cypress": "^13.0.0"
+  },
+  "overrides": {
+    "qs": "6.15.2",
+    "uuid": "11.1.1"
   }
 }
