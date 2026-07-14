@@ -77,6 +77,30 @@ jobs:
         working-directory: ${{ env.THEME_ROOT }}
         run: bun run build
 
+  theme-lint:
+    name: Theme Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        working-directory: ${{ env.THEME_ROOT }}
+        run: bun install --frozen-lockfile
+
+      # Invoked directly rather than via `bun run eslint`, whose script passes
+      # --fix: CI must report problems, not quietly rewrite the checkout.
+      - name: ESLint
+        working-directory: ${{ env.THEME_ROOT }}
+        run: bunx eslint .
+
+      - name: Stylelint
+        working-directory: ${{ env.THEME_ROOT }}
+        run: bunx stylelint "**/*.css"
+
   phpcs:
     name: PHPCS
     runs-on: ubuntu-latest
