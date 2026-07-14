@@ -13,6 +13,23 @@ ISSUE_LABEL_TRANSITIVE="transitive"
 LABEL_PRIORITY_HIGH="priority: high"
 LABEL_PRIORITY_MEDIUM="priority: medium"
 LABEL_PRIORITY_LOW="priority: low"
+# GitHub user that auto-created/updated issues are assigned to.
+ISSUE_ASSIGNEE="corentinbessire"
+
+# Packages that are always released in lockstep and should share a single
+# issue instead of one issue per package.
+CORE_GROUP_ISSUE_NAME="drupal/core"
+CORE_GROUP_PACKAGES=(
+    "drupal/core"
+    "drupal/core-composer-scaffold"
+    "drupal/core-project-message"
+    "drupal/core-recommended"
+)
+
+# Name used for the single issue that bundles every patch-only update for
+# packages outside the core group. Patch updates are low-risk, so they're
+# tracked together instead of one issue per package.
+PATCH_GROUP_ISSUE_NAME="patch-releases"
 
 # Colors for output
 RED='\033[0;31m'
@@ -69,6 +86,16 @@ get_direct_drupal_deps() {
 is_direct_drupal_dep() {
     local package="$1"
     get_direct_drupal_deps | grep -q "^${package}$"
+}
+
+# Check if a package belongs to the drupal/core release group
+is_core_group_package() {
+    local package="$1"
+    local p
+    for p in "${CORE_GROUP_PACKAGES[@]}"; do
+        [ "$package" = "$p" ] && return 0
+    done
+    return 1
 }
 
 # Determine update type by comparing versions
@@ -225,7 +252,7 @@ composer update ${dep_name} --with-dependencies
                 fi
             done
 
-            gh issue edit "$issue_number" --title "$title" --body "$body" --add-label "$priority_label"
+            gh issue edit "$issue_number" --title "$title" --body "$body" --add-label "$priority_label" --add-assignee "$ISSUE_ASSIGNEE"
             gh issue comment "$issue_number" --body "🔄 **Updated:** New version available. ${current_version} → ${latest_version} (${update_type} update)"
         fi
     else
@@ -237,7 +264,212 @@ composer update ${dep_name} --with-dependencies
             --label "$ISSUE_LABEL_DRUPAL" \
             --label "$dep_type_label" \
             --label "$priority_label" \
-            --assignee corentinbessire
+            --assignee "$ISSUE_ASSIGNEE"
+    fi
+}
+
+# Create or update the single combined issue for the drupal/core release
+# group. Reads lines of "name|current|latest|update_type|is_direct" from the
+# given file, one per outdated package in the group.
+create_or_update_core_group_issue() {
+    local group_file="$1"
+
+    local description=""
+    description=$(composer show "$CORE_GROUP_ISSUE_NAME" 2>/dev/null | grep -E "^descrip" | sed 's/descrip[tion]*[ :]*//' || echo "")
+
+    # All packages in the group share the same version number, so use
+    # drupal/core's own current/latest for the title (falling back to
+    # whichever package is available if drupal/core itself isn't outdated).
+    local current latest update_type
+    read -r current latest update_type <<< "$(awk -F'|' -v name="$CORE_GROUP_ISSUE_NAME" '$1 == name { print $2, $3, $4; exit }' "$group_file")"
+    if [ -z "$current" ]; then
+        read -r current latest update_type <<< "$(awk -F'|' '{ print $2, $3, $4; exit }' "$group_file")"
+    fi
+
+    local title="[Update] ${CORE_GROUP_ISSUE_NAME} ${current} → ${latest}"
+
+    local rows=""
+    local worst_update_type="patch"
+    local has_direct="false"
+    while IFS='|' read -r name pkg_current pkg_latest pkg_update_type pkg_is_direct; do
+        [ -z "$name" ] && continue
+
+        case "$pkg_update_type" in
+            major) worst_update_type="major" ;;
+            minor) [ "$worst_update_type" != "major" ] && worst_update_type="minor" ;;
+        esac
+
+        local pkg_type_display
+        case $pkg_update_type in
+            major) pkg_type_display="⚠️ Major" ;;
+            minor) pkg_type_display="📦 Minor" ;;
+            patch) pkg_type_display="🔧 Patch" ;;
+        esac
+
+        local dep_display="Transitive"
+        if [ "$pkg_is_direct" = "true" ]; then
+            dep_display="Direct"
+            has_direct="true"
+        fi
+
+        rows="${rows}| \`${name}\` | ${pkg_current} | ${pkg_latest} | ${pkg_type_display} | ${dep_display} |
+"
+    done < "$group_file"
+
+    local priority_label=$(get_priority_label "$worst_update_type")
+    local dep_type_label="$ISSUE_LABEL_TRANSITIVE"
+    [ "$has_direct" = "true" ] && dep_type_label="$ISSUE_LABEL_DIRECT"
+
+    local body="## Drupal Core Update Available
+
+**Description:** ${description:-"N/A"}
+
+These packages are versioned and released together, so they are tracked as a single update.
+
+| Package | Current Version | Latest Version | Update Type | Dependency |
+|---------|------------------|-----------------|--------------|------------|
+${rows}
+### Update Command
+
+\`\`\`bash
+composer update ${CORE_GROUP_PACKAGES[*]} --with-dependencies
+\`\`\`
+
+### Before updating
+
+1. Review the changelog: https://www.drupal.org/project/drupal/releases
+2. Check for any breaking changes (especially for major updates)
+3. Test on a development environment first
+
+### After updating
+
+1. Run database updates: \`drush updatedb\`
+2. Export configuration: \`drush config:export\`
+3. Clear caches: \`drush cache:rebuild\`
+4. Test affected functionality
+
+---
+*This issue is automatically managed by the dependency updates workflow.*
+*Last checked: $(date -u +"%Y-%m-%d %H:%M UTC")*"
+
+    local existing=$(find_existing_issue "$CORE_GROUP_ISSUE_NAME")
+
+    if [ -n "$existing" ]; then
+        local issue_number=$(echo "$existing" | jq -r '.number')
+        local existing_title=$(echo "$existing" | jq -r '.title')
+        local existing_labels=$(echo "$existing" | jq -r '.labels[]' 2>/dev/null || echo "")
+
+        if [ "$existing_title" = "$title" ]; then
+            echo -e "${YELLOW}  ↳ Issue #${issue_number} already exists and is up to date${NC}"
+        else
+            echo -e "${YELLOW}  ↳ Updating issue #${issue_number} (version changed)${NC}"
+
+            for old_priority in "$LABEL_PRIORITY_HIGH" "$LABEL_PRIORITY_MEDIUM" "$LABEL_PRIORITY_LOW"; do
+                if echo "$existing_labels" | grep -q "^${old_priority}$"; then
+                    gh issue edit "$issue_number" --remove-label "$old_priority" 2>/dev/null || true
+                fi
+            done
+
+            gh issue edit "$issue_number" --title "$title" --body "$body" --add-label "$priority_label" --add-assignee "$ISSUE_ASSIGNEE"
+            gh issue comment "$issue_number" --body "🔄 **Updated:** New version available. ${current} → ${latest} (${update_type} update)"
+        fi
+    else
+        echo -e "${BLUE}  ↳ Creating new issue${NC}"
+        gh issue create \
+            --title "$title" \
+            --body "$body" \
+            --label "$ISSUE_LABEL" \
+            --label "$ISSUE_LABEL_DRUPAL" \
+            --label "$dep_type_label" \
+            --label "$priority_label" \
+            --assignee "$ISSUE_ASSIGNEE"
+    fi
+}
+
+# Create or update the single combined issue for every non-core-group package
+# that only has a patch-level update available. Patch updates are low-risk,
+# so they're bundled together instead of creating one issue per package.
+# Reads lines of "name|current|latest|is_direct" from the given file.
+create_or_update_patch_group_issue() {
+    local group_file="$1"
+
+    local title="[Update] ${PATCH_GROUP_ISSUE_NAME} available"
+
+    local rows=""
+    local package_names=""
+    local has_direct="false"
+    while IFS='|' read -r name pkg_current pkg_latest pkg_is_direct; do
+        [ -z "$name" ] && continue
+
+        local dep_display="Transitive"
+        if [ "$pkg_is_direct" = "true" ]; then
+            dep_display="Direct"
+            has_direct="true"
+        fi
+
+        local release_notes="https://www.drupal.org/project/${name#drupal/}/releases/${pkg_latest}"
+
+        rows="${rows}| \`${name}\` | ${pkg_current} | ${pkg_latest} | ${dep_display} | [Patch notes](${release_notes}) |
+"
+        package_names="${package_names} ${name}"
+    done < "$group_file"
+    package_names="${package_names# }"
+
+    local dep_type_label="$ISSUE_LABEL_TRANSITIVE"
+    [ "$has_direct" = "true" ] && dep_type_label="$ISSUE_LABEL_DIRECT"
+
+    local body="## Drupal Patch Updates Available
+
+Patch-level updates are low-risk, so they are bundled into a single issue instead of one per package.
+
+| Package | Current Version | Latest Version | Dependency | Patch Notes |
+|---------|------------------|-----------------|------------|-------------|
+${rows}
+### Update Command
+
+\`\`\`bash
+composer update ${package_names} --with-dependencies
+\`\`\`
+
+### Before updating
+
+1. Review each package's patch notes linked above
+2. Test on a development environment first
+
+### After updating
+
+1. Run database updates: \`drush updatedb\`
+2. Export configuration: \`drush config:export\`
+3. Clear caches: \`drush cache:rebuild\`
+4. Test affected functionality
+
+---
+*This issue is automatically managed by the dependency updates workflow.*
+*Last checked: $(date -u +"%Y-%m-%d %H:%M UTC")*"
+
+    local existing=$(find_existing_issue "$PATCH_GROUP_ISSUE_NAME")
+
+    if [ -n "$existing" ]; then
+        local issue_number=$(echo "$existing" | jq -r '.number')
+        local existing_body=$(echo "$existing" | jq -r '.body')
+
+        if [[ "$existing_body" == *"$rows"* ]]; then
+            echo -e "${YELLOW}  ↳ Issue #${issue_number} already exists and is up to date${NC}"
+        else
+            echo -e "${YELLOW}  ↳ Updating issue #${issue_number} (patch list changed)${NC}"
+            gh issue edit "$issue_number" --title "$title" --body "$body" --add-label "$LABEL_PRIORITY_LOW" --add-assignee "$ISSUE_ASSIGNEE"
+            gh issue comment "$issue_number" --body "🔄 **Updated:** Patch update list has changed."
+        fi
+    else
+        echo -e "${BLUE}  ↳ Creating new issue${NC}"
+        gh issue create \
+            --title "$title" \
+            --body "$body" \
+            --label "$ISSUE_LABEL" \
+            --label "$ISSUE_LABEL_DRUPAL" \
+            --label "$dep_type_label" \
+            --label "$LABEL_PRIORITY_LOW" \
+            --assignee "$ISSUE_ASSIGNEE"
     fi
 }
 
@@ -299,8 +531,8 @@ check_outdated_packages() {
 
     echo "  Found ${package_count} outdated packages, filtering Drupal modules..."
 
-    # Clear temp file
-    rm -f /tmp/outdated_drupal_deps.txt
+    # Clear temp files
+    rm -f /tmp/outdated_drupal_deps.txt /tmp/core_group_updates.txt /tmp/patch_group_updates.txt
 
     # Iterate through each outdated package
     echo "$packages" | jq -c '.[]' | while read -r package; do
@@ -330,11 +562,33 @@ check_outdated_packages() {
             echo -e "${MAGENTA}  → ${name}: ${current} → ${latest} (${update_type}, transitive)${NC}"
         fi
 
-        # Track this as an outdated Drupal dependency
-        echo "$name" >> /tmp/outdated_drupal_deps.txt
-
-        create_or_update_issue "$name" "$current" "$latest" "$update_type" "$priority_label" "$is_direct"
+        if is_core_group_package "$name"; then
+            # Grouped packages are always released together; defer them to a
+            # single combined issue instead of creating one per package.
+            echo "$CORE_GROUP_ISSUE_NAME" >> /tmp/outdated_drupal_deps.txt
+            echo "${name}|${current}|${latest}|${update_type}|${is_direct}" >> /tmp/core_group_updates.txt
+        elif [ "$update_type" = "patch" ]; then
+            # Patch updates are low-risk; bundle them into a single issue
+            # instead of creating one per package.
+            echo "$PATCH_GROUP_ISSUE_NAME" >> /tmp/outdated_drupal_deps.txt
+            echo "${name}|${current}|${latest}|${is_direct}" >> /tmp/patch_group_updates.txt
+        else
+            echo "$name" >> /tmp/outdated_drupal_deps.txt
+            create_or_update_issue "$name" "$current" "$latest" "$update_type" "$priority_label" "$is_direct"
+        fi
     done
+
+    # Create/update the single combined issue for the drupal/core release group
+    if [ -f /tmp/core_group_updates.txt ]; then
+        create_or_update_core_group_issue /tmp/core_group_updates.txt
+        rm -f /tmp/core_group_updates.txt
+    fi
+
+    # Create/update the single combined issue for patch-only updates
+    if [ -f /tmp/patch_group_updates.txt ]; then
+        create_or_update_patch_group_issue /tmp/patch_group_updates.txt
+        rm -f /tmp/patch_group_updates.txt
+    fi
 
     # Close resolved issues
     if [ -f /tmp/outdated_drupal_deps.txt ]; then

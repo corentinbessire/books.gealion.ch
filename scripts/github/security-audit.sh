@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Security Audit Script
-# Checks composer and bun dependencies for known vulnerabilities
+# Checks composer and npm dependencies for known vulnerabilities
 # Creates/updates GitHub issues for both direct and transitive dependencies
 
 set -e
@@ -11,6 +11,18 @@ ISSUE_LABEL_COMPOSER="composer"
 ISSUE_LABEL_NPM="npm"
 ISSUE_LABEL_DIRECT="direct"
 ISSUE_LABEL_TRANSITIVE="transitive"
+# GitHub user that auto-created/updated issues are assigned to.
+ISSUE_ASSIGNEE="corentinbessire"
+
+# Packages that are always released in lockstep and should share a single
+# issue instead of one issue per package.
+CORE_GROUP_ISSUE_NAME="drupal/core"
+CORE_GROUP_PACKAGES=(
+    "drupal/core"
+    "drupal/core-composer-scaffold"
+    "drupal/core-project-message"
+    "drupal/core-recommended"
+)
 
 # Colors for output
 RED='\033[0;31m'
@@ -76,6 +88,16 @@ is_direct_npm_dep() {
     get_direct_npm_deps | grep -q "^${package}$"
 }
 
+# Check if a package belongs to the drupal/core release group
+is_core_group_package() {
+    local package="$1"
+    local p
+    for p in "${CORE_GROUP_PACKAGES[@]}"; do
+        [ "$package" = "$p" ] && return 0
+    done
+    return 1
+}
+
 # Find which direct dependency requires a transitive package
 find_requiring_composer_packages() {
     local package="$1"
@@ -84,12 +106,7 @@ find_requiring_composer_packages() {
 
 find_requiring_npm_packages() {
     local package="$1"
-    # Parse bun.lock to find which packages depend on this one
-    if [ -f "bun.lock" ]; then
-        grep -B2 "\"$package\"" bun.lock 2>/dev/null | grep -oE '"[a-zA-Z0-9@/_-]+"' | head -3 | tr -d '"' | tr '\n' ', ' | sed 's/,$//' || echo "unknown"
-    else
-        echo "unknown"
-    fi
+    npm why "$package" 2>/dev/null | head -5 | grep -oE '[a-zA-Z0-9@/_-]+' | head -3 | tr '\n' ', ' | sed 's/,$//' || echo "unknown"
 }
 
 # Find existing open issue for a dependency
@@ -160,7 +177,9 @@ ${advisories}
 
 Check available versions: \`composer show ${dep_name} --all\`"
     else
-        body+="Run \`bun update ${dep_name}\` or \`bun add ${dep_name}@latest\` to update to a patched version."
+        body+="Run \`npm update ${dep_name}\` or \`npm install ${dep_name}@latest\` to update to a patched version.
+
+Check available versions: \`npm view ${dep_name} versions\`"
     fi
 
     body+="
@@ -181,7 +200,7 @@ Check available versions: \`composer show ${dep_name} --all\`"
             echo -e "${YELLOW}  ↳ Issue #${issue_number} already exists and is up to date${NC}"
         else
             echo -e "${YELLOW}  ↳ Updating issue #${issue_number}${NC}"
-            gh issue edit "$issue_number" --body "$body"
+            gh issue edit "$issue_number" --body "$body" --add-assignee "$ISSUE_ASSIGNEE"
             gh issue comment "$issue_number" --body "🔄 **Updated:** Vulnerability information has been refreshed. Installed version: ${installed_version}"
         fi
     else
@@ -192,7 +211,81 @@ Check available versions: \`composer show ${dep_name} --all\`"
             --label "$ISSUE_LABEL" \
             --label "$dep_type" \
             --label "$dep_type_label" \
-            --assignee corentinbessire
+            --assignee "$ISSUE_ASSIGNEE"
+    fi
+}
+
+# Create or update the single combined security issue for the drupal/core
+# release group. meta_file has lines of "name|installed_version|is_direct",
+# body_file has the pre-formatted advisories for each affected package.
+create_or_update_core_group_security_issue() {
+    local dep_type="$1"
+    local meta_file="$2"
+    local body_file="$3"
+
+    local table_rows=""
+    local has_direct="false"
+    while IFS='|' read -r name installed_version pkg_is_direct; do
+        [ -z "$name" ] && continue
+        local dep_display="Transitive"
+        if [ "$pkg_is_direct" = "true" ]; then
+            dep_display="Direct"
+            has_direct="true"
+        fi
+        table_rows="${table_rows}| \`${name}\` | ${installed_version} | ${dep_display} |
+"
+    done < "$meta_file"
+
+    local dep_type_label="$ISSUE_LABEL_TRANSITIVE"
+    [ "$has_direct" = "true" ] && dep_type_label="$ISSUE_LABEL_DIRECT"
+
+    local title="[Security] ${CORE_GROUP_ISSUE_NAME} - Vulnerability detected"
+    local body="## 🚨 Security Vulnerability in \`${CORE_GROUP_ISSUE_NAME}\`
+
+These packages are versioned and released together, so they are tracked as a single security issue.
+
+**Package Manager:** ${dep_type}
+**Detected:** $(date -u +"%Y-%m-%d %H:%M UTC")
+
+| Package | Installed Version | Dependency |
+|---------|--------------------|------------|
+${table_rows}
+### Advisories
+
+$(cat "$body_file")
+---
+
+### How to fix
+
+Run \`composer update ${CORE_GROUP_PACKAGES[*]} --with-dependencies\` to update to a patched version.
+
+Check available versions: \`composer show ${CORE_GROUP_ISSUE_NAME} --all\`
+
+---
+*This issue is automatically managed by the security audit workflow.*"
+
+    local existing=$(find_existing_issue "$CORE_GROUP_ISSUE_NAME" "$dep_type")
+
+    if [ -n "$existing" ]; then
+        local issue_number=$(echo "$existing" | jq -r '.number')
+        local existing_body=$(echo "$existing" | jq -r '.body')
+
+        if [[ "$existing_body" == *"$table_rows"* ]]; then
+            echo -e "${YELLOW}  ↳ Issue #${issue_number} already exists and is up to date${NC}"
+        else
+            echo -e "${YELLOW}  ↳ Updating issue #${issue_number}${NC}"
+            gh issue edit "$issue_number" --body "$body" --add-assignee "$ISSUE_ASSIGNEE"
+            gh issue comment "$issue_number" --body "🔄 **Updated:** Vulnerability information has been refreshed."
+        fi
+    else
+        echo -e "${RED}  ↳ Creating new issue${NC}"
+        gh issue create \
+            --title "$title" \
+            --body "$body" \
+            --label "$ISSUE_LABEL" \
+            --label "$dep_type" \
+            --label "$dep_type_label" \
+            --assignee "$ISSUE_ASSIGNEE"
     fi
 }
 
@@ -254,8 +347,8 @@ run_composer_audit() {
 
     echo -e "${RED}  ⚠ Vulnerabilities found, processing all dependencies...${NC}"
 
-    # Clear temp file
-    rm -f /tmp/vulnerable_composer_deps.txt
+    # Clear temp files
+    rm -f /tmp/vulnerable_composer_deps.txt /tmp/core_group_security_composer.txt /tmp/core_group_security_composer_body.md
 
     # Iterate through each package with advisories
     echo "$advisories_json" | jq -r 'keys[]' | while read -r package; do
@@ -268,17 +361,34 @@ run_composer_audit() {
             echo -e "${MAGENTA}  → ${package} (transitive dependency)${NC}"
         fi
 
-        # Track vulnerable dependency
-        echo "$package" >> /tmp/vulnerable_composer_deps.txt
-
         # Get installed version
         local installed_version=$(composer show "$package" --format=json 2>/dev/null | jq -r '.versions[0] // "unknown"')
 
         # Format advisories for this package
         local package_advisories=$(echo "$advisories_json" | jq -r --arg pkg "$package" '.[$pkg][] | "- **\(.title // .cve // "Unknown")**\n  - CVE: \(.cve // "N/A")\n  - Affected versions: \(.affectedVersions // "N/A")\n  - Link: \(.link // "N/A")\n"')
 
-        create_or_update_issue "$package" "composer" "$package_advisories" "$installed_version" "$is_direct"
+        if is_core_group_package "$package"; then
+            # Grouped packages are always released together; defer them to a
+            # single combined issue instead of creating one per package.
+            echo "$CORE_GROUP_ISSUE_NAME" >> /tmp/vulnerable_composer_deps.txt
+            printf '%s|%s|%s\n' "$package" "$installed_version" "$is_direct" >> /tmp/core_group_security_composer.txt
+            {
+                echo "#### \`${package}\` (installed: ${installed_version})"
+                echo ""
+                echo "$package_advisories"
+                echo ""
+            } >> /tmp/core_group_security_composer_body.md
+        else
+            echo "$package" >> /tmp/vulnerable_composer_deps.txt
+            create_or_update_issue "$package" "composer" "$package_advisories" "$installed_version" "$is_direct"
+        fi
     done
+
+    # Create/update the single combined security issue for the drupal/core group
+    if [ -f /tmp/core_group_security_composer.txt ]; then
+        create_or_update_core_group_security_issue "composer" /tmp/core_group_security_composer.txt /tmp/core_group_security_composer_body.md
+        rm -f /tmp/core_group_security_composer.txt /tmp/core_group_security_composer_body.md
+    fi
 
     # Close resolved issues
     if [ -f /tmp/vulnerable_composer_deps.txt ]; then

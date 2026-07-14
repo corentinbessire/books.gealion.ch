@@ -16,6 +16,7 @@ on:
   workflow_dispatch:
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PHP_VERSION: '8.4'
   THEME_ROOT: 'web/themes/custom/books'
 
