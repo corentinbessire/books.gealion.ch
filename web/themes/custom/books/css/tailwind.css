@@ -3,6 +3,7 @@
 @source "../templates/**/*.twig";
 @source "../components/**/*.twig";
 @source "../js/**/*.js";
+
 /* Custom modules render Twig/inline templates that use theme utility classes. */
 @source "../../../../modules/custom/**/*.php";
 @source "../../../../modules/custom/**/*.twig";
@@ -30,9 +31,9 @@
   --color-ink-muted: #6b5d4d;
 
   /* Typography scale */
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-body: 'Source Serif 4', 'Palatino Linotype', Palatino, Georgia, serif;
-  --font-accent: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
+  --font-display: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+  --font-body: 'Source Serif 4', 'Palatino Linotype', 'Palatino', 'Georgia', serif;
+  --font-accent: 'Cormorant Garamond', 'Garamond', 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 }
 
@@ -85,9 +86,20 @@
     letter-spacing: -0.01em;
   }
 
-  h1 { font-size: 2.75rem; line-height: 1.15; }
-  h2 { font-size: 2rem; line-height: 1.2; }
-  h3 { font-size: 1.5rem; line-height: 1.3; }
+  h1 {
+    font-size: 2.75rem;
+    line-height: 1.15;
+  }
+
+  h2 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
 
   a {
     color: var(--color-burgundy);
@@ -361,7 +373,7 @@
   }
 
   /* Animations */
-  @keyframes fadeInUp {
+  @keyframes fade-in-up {
     from {
       opacity: 0;
       transform: translateY(20px);
@@ -378,12 +390,12 @@
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease forwards;
+    animation: fade-in-up 0.6s ease forwards;
   }
 
   .animate-stagger > * {
     opacity: 0;
-    animation: fadeInUp 0.5s ease forwards;
+    animation: fade-in-up 0.5s ease forwards;
   }
 
   .animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
