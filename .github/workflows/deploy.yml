@@ -57,6 +57,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -112,6 +113,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -151,6 +153,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -190,6 +193,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -233,6 +237,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -279,6 +284,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
@@ -344,6 +350,7 @@ jobs:
           path: |
             vendor
             web/autoload.php
+            web/autoload_runtime.php
             web/index.php
             web/.ht.router.php
             web/core
