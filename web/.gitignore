@@ -6,6 +6,7 @@
 /INSTALL.txt
 /README.txt
 /autoload.php
+/autoload_runtime.php
 /example.gitignore
 /index.php
 /robots.txt
