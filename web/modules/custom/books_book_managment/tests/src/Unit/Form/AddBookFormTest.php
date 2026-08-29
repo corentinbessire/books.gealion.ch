@@ -108,7 +108,7 @@ class AddBookFormTest extends UnitTestCase {
 
     $this->booksUtilsService->expects($this->once())
       ->method('saveBookData')
-      ->with($isbn, ['field_isbn' => $isbn])
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
       ->willReturn($book);
 
     $queue = $this->createMock(QueueInterface::class);
@@ -151,7 +151,7 @@ class AddBookFormTest extends UnitTestCase {
 
     $this->booksUtilsService->expects($this->once())
       ->method('saveBookData')
-      ->with($isbn, ['field_isbn' => $isbn])
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
       ->willReturn($book);
 
     $this->queueFactory->expects($this->never())->method('get');

@@ -154,7 +154,9 @@ class AddBookForm extends FormBase {
       $bookData = $this->hardcoverService->getFormattedBookData($isbn);
     }
     catch (HardcoverRateLimitException) {
-      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn]);
+      // Gap-fill mode: getBook() may well return a book that is already in the
+      // library, and its real title must not be replaced by the raw ISBN.
+      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
       $this->queueFactory->get('hardcover_book_sync')->createItem([
         'nid' => $book->id(),
         'isbn' => $isbn,
@@ -166,7 +168,8 @@ class AddBookForm extends FormBase {
     }
 
     if ($bookData === NULL) {
-      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn]);
+      // Gap-fill mode, for the same reason as above.
+      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
       $this->messenger()->addWarning($this->t('Hardcover has no data for this ISBN. The book was created — please fill in the details.'));
       $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
       return;

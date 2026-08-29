@@ -304,6 +304,28 @@ class BooksUtilsServiceKernelTest extends KernelTestBase {
   }
 
   /**
+   * Tests that rescanning a known ISBN keeps the title already on the node.
+   *
+   * This is the exact call AddBookForm makes when Hardcover is unreachable or
+   * rate limited: a stub save carrying nothing but the ISBN. Without gap-fill
+   * mode it would rename an existing book to its bare barcode.
+   *
+   * @covers ::saveBookData
+   */
+  public function testStubSaveDoesNotRenameAnExistingBook(): void {
+    $isbn = '9780765326379';
+    $this->booksUtilsService->saveBookData($isbn, [
+      'title' => 'Oathbringer',
+      'field_isbn' => $isbn,
+    ]);
+
+    $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
+
+    $this->assertSame('Oathbringer', $book->getTitle());
+    $this->assertSame('Oathbringer', $this->reloadBook($book)->getTitle());
+  }
+
+  /**
    * Tests that every book node is returned for the backfill.
    *
    * @covers ::getAllBooks
