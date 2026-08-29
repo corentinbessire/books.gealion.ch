@@ -1351,7 +1351,7 @@ sed -i '' \
   -e 's/node__field_serie_number/node__field_serie_position/g' \
   -e 's/field_serie_number_value/field_serie_position_value/g' \
   -e 's/field\.storage\.node\.field_serie_number/field.storage.node.field_serie_position/g' \
-  -e 's/\bfield_serie_number\b/field_serie_position/g' \
+  -e 's/field_serie_number/field_serie_position/g' \
   config/sync/views.view.taxonomy_term.yml config/sync/views.view.books_admin.yml
 grep -rn "field_serie_number" config/sync/ || echo "no references left"
 ```
