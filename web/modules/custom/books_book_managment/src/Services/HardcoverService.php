@@ -114,7 +114,7 @@ class HardcoverService {
       return NULL;
     }
 
-    $now = $this->time->getRequestTime();
+    $now = $this->time->getCurrentTime();
     if ($this->throttledUntil > $now) {
       throw new HardcoverRateLimitException($this->throttledUntil - $now);
     }
@@ -142,7 +142,8 @@ class HardcoverService {
     }
 
     if ($response->getStatusCode() === 429) {
-      $retryAfter = max(1, (int) $response->getHeaderLine('Retry-After') ?: 60);
+      $retryAfterHeader = $response->getHeaderLine('Retry-After');
+      $retryAfter = is_numeric($retryAfterHeader) ? max(1, (int) $retryAfterHeader) : 60;
       $this->throttledUntil = $now + $retryAfter;
       throw new HardcoverRateLimitException($retryAfter);
     }
@@ -184,7 +185,7 @@ class HardcoverService {
    * @param \Psr\Http\Message\ResponseInterface $response
    *   The API response.
    * @param int $now
-   *   Current request time.
+   *   Current time.
    */
   protected function recordRateLimitState(ResponseInterface $response, int $now): void {
     foreach (self::parseRateLimitHeader($response->getHeaderLine('RateLimit')) as $bucket) {

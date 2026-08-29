@@ -62,7 +62,7 @@ class HardcoverServiceTest extends UnitTestCase {
     $this->isbnTools = $this->createMock(IsbnToolsServiceInterface::class);
     $this->isbnTools->method('convertIsbn13to10')->willReturn('0765326379');
     $this->time = $this->createMock(TimeInterface::class);
-    $this->time->method('getRequestTime')->willReturn(1000);
+    $this->time->method('getCurrentTime')->willReturn(1000);
   }
 
   /**
@@ -150,6 +150,96 @@ class HardcoverServiceTest extends UnitTestCase {
       $this->assertSame(42, $e->getRetryAfter());
       throw $e;
     }
+  }
+
+  /**
+   * Tests the Retry-After header on a 429 response.
+   *
+   * A header of "42" yields 42 seconds, an explicit "0" yields the 1 second
+   * floor rather than the 60 second default (a server explicitly asking for
+   * an immediate retry must not be turned into a full minute wait), and an
+   * absent header falls back to 60. Each case needs its own service
+   * instance: once $throttledUntil is set on an instance, a following call
+   * on that same instance would short-circuit before ever making a request.
+   *
+   * @covers ::getBookData
+   */
+  public function testRetryAfterHeaderVariants(): void {
+    $cases = [
+      ['42', 42],
+      ['0', 1],
+      [NULL, 60],
+    ];
+
+    foreach ($cases as [$header, $expected]) {
+      $httpClient = $this->createMock(ClientInterface::class);
+      $headers = $header === NULL ? [] : ['Retry-After' => $header];
+      $httpClient->method('request')
+        ->willReturn(new Response(429, $headers, '{}'));
+
+      $service = new HardcoverService(
+        $httpClient,
+        $this->loggerFactory,
+        new Settings(['hardcover_api_token' => 'test-token']),
+        $this->isbnTools,
+        $this->time,
+      );
+
+      try {
+        $service->getBookData('9780765326379');
+        $this->fail('Expected HardcoverRateLimitException was not thrown.');
+      }
+      catch (HardcoverRateLimitException $e) {
+        $this->assertSame($expected, $e->getRetryAfter());
+      }
+    }
+  }
+
+  /**
+   * Tests that the throttle clears once the current time passes the deadline.
+   *
+   * Regression test for a frozen-clock bug: TimeInterface::getRequestTime()
+   * is frozen for the life of the PHP process, so a throttle set once could
+   * never clear. Task 9's Drush command drains the whole sync queue inside
+   * one long-running process, catching the rate limit exception and sleeping
+   * for the delay before retrying; with a frozen clock every retry would
+   * throw again with the same delay, an infinite sleep loop that never
+   * recovers. TimeInterface::getCurrentTime() reads the real clock, so once
+   * enough time passes the service resumes making requests.
+   *
+   * @covers ::getBookData
+   */
+  public function testThrottleSelfClearsAfterDeadlinePasses(): void {
+    $time = $this->createMock(TimeInterface::class);
+    $time->method('getCurrentTime')->willReturnOnConsecutiveCalls(1000, 1000, 1100);
+
+    $httpClient = $this->createMock(ClientInterface::class);
+    $httpClient->method('request')
+      ->willReturn(new Response(200, ['RateLimit' => '"Free";r=0;t=30'], $this->fixture()));
+
+    $service = new HardcoverService(
+      $httpClient,
+      $this->loggerFactory,
+      new Settings(['hardcover_api_token' => 'test-token']),
+      $this->isbnTools,
+      $time,
+    );
+
+    // First call: t=1000, succeeds and exhausts the bucket, throttling until
+    // t=1030.
+    $this->assertIsArray($service->getBookData('9780765326379'));
+
+    // Second call: still t=1000, still throttled, throws.
+    try {
+      $service->getBookData('9780765326379');
+      $this->fail('Expected HardcoverRateLimitException was not thrown.');
+    }
+    catch (HardcoverRateLimitException $e) {
+      // Expected.
+    }
+
+    // Third call: t=1100, past the t=1030 deadline, succeeds again.
+    $this->assertIsArray($service->getBookData('9780765326379'));
   }
 
   /**
