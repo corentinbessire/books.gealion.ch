@@ -1,0 +1,46 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for Books - Book Managment.
+ */
+
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Copy field_serie_number into field_serie_position and drop the old field.
+ *
+ * Hardcover reports series positions as floats (novellas sit at 1.5), which
+ * the old integer field could not hold.
+ */
+function books_book_managment_update_11001(&$sandbox): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->condition('type', 'book')
+    ->exists('field_serie_number')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  $migrated = 0;
+  foreach ($storage->loadMultiple($nids) as $node) {
+    if (!$node->hasField('field_serie_position') || !$node->get('field_serie_position')->isEmpty()) {
+      continue;
+    }
+    $value = $node->get('field_serie_number')->value;
+    if ($value === NULL || $value === '') {
+      continue;
+    }
+    $node->set('field_serie_position', (float) $value);
+    $node->save();
+    $migrated++;
+  }
+
+  $oldStorage = FieldStorageConfig::loadByName('node', 'field_serie_number');
+  if ($oldStorage) {
+    $oldStorage->delete();
+  }
+
+  return t('Migrated @count series positions and removed field_serie_number.', [
+    '@count' => $migrated,
+  ]);
+}

@@ -13,7 +13,6 @@ dependencies:
     - field.field.node.book.field_publisher
     - field.field.node.book.field_release
     - field.field.node.book.field_serie
-    - field.field.node.book.field_serie_number
     - field.field.node.book.field_serie_position
     - node.type.book
   module:
@@ -106,15 +105,6 @@ content:
       link: true
     third_party_settings: {  }
     weight: 104
-    region: content
-  field_serie_number:
-    type: number_integer
-    label: hidden
-    settings:
-      thousand_separator: ''
-      prefix_suffix: true
-    third_party_settings: {  }
-    weight: 105
     region: content
   field_serie_position:
     type: number_decimal

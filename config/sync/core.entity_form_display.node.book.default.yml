@@ -13,7 +13,6 @@ dependencies:
     - field.field.node.book.field_publisher
     - field.field.node.book.field_release
     - field.field.node.book.field_serie
-    - field.field.node.book.field_serie_number
     - field.field.node.book.field_serie_position
     - node.type.book
   module:
@@ -117,16 +116,9 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-  field_serie_number:
-    type: number
-    weight: 125
-    region: content
-    settings:
-      placeholder: ''
-    third_party_settings: {  }
   field_serie_position:
     type: number
-    weight: 59
+    weight: 125
     region: content
     settings:
       placeholder: ''

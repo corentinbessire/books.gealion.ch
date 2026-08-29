@@ -48,10 +48,10 @@ display:
         options: {  }
       empty: {  }
       sorts:
-        field_serie_number_value:
-          id: field_serie_number_value
-          table: node__field_serie_number
-          field: field_serie_number_value
+        field_serie_position_value:
+          id: field_serie_position_value
+          table: node__field_serie_position
+          field: field_serie_position_value
           relationship: none
           group_type: group
           admin_label: ''
@@ -59,7 +59,7 @@ display:
           order: DESC
           expose:
             label: ''
-            field_identifier: field_serie_number_value
+            field_identifier: field_serie_position_value
           exposed: false
         sticky:
           id: sticky
