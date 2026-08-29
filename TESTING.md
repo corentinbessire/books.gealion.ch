@@ -56,12 +56,11 @@ Unit tests are fast, isolated, and require no Drupal bootstrap or database. They
 
 | Test file | Class under test | What it covers |
 |-----------|-----------------|----------------|
-| `GoogleBooksServiceTest` | `GoogleBooksService` | API calls with HTTP mocks, data formatting, error handling |
-| `OpenLibraryServiceTest` | `OpenLibraryService` | API calls with HTTP mocks, data formatting, error handling |
+| `HardcoverServiceTest` | `HardcoverService` | GraphQL calls against a captured fixture, ISBN-10 conversion, rate limit header parsing and throttling, connection failures, tag/genre/mood mapping |
 | `CoverDownloadServiceTest` | `CoverDownloadService` | Source URL building, media query/creation, HTTP error handling |
-| `BooksUtilsServiceTest` | `BooksUtilsService` | Book load/create, term upsert, missing cover query |
-| `AddBookFormTest` | `AddBookForm` | Data merge priority, form ID |
-| `MissingCoverBatchTest` | `MissingCoverBatch` | Batch finish callback messaging |
+| `BooksUtilsServiceTest` | `BooksUtilsService` | Book load/create, term upsert, missing cover query, queueing (skips non-books and books with no ISBN) |
+| `AddBookFormTest` | `AddBookForm` | Form ID, successful save, and the stub-and-enqueue paths for a rate limit, a connection failure and an unknown ISBN |
+| `BooksBookManagmentCommandsTest` | `BooksBookManagmentCommands` | `drainQueue()` exception handling: attempt cap, item release rather than deletion, daily-limit bail-out |
 | `ActivityControllerTest` | `ActivityController` | Activity update logic, bundle validation, status query |
 
 ```bash
@@ -76,7 +75,8 @@ Kernel tests boot Drupal's service container and use a real database. They valid
 
 | Test file | What it covers |
 |-----------|----------------|
-| `BooksUtilsServiceKernelTest` | Service container wiring, book create/load with real DB, term upsert, missing cover query |
+| `BooksUtilsServiceKernelTest` | Service container wiring, book create/load with real DB, term upsert, missing cover query, gap-fill behaviour (a rescan never renames a known book) |
+| `HardcoverBookSyncKernelTest` | Queue worker: a rate limit becomes a DelayedRequeueException so the item is postponed, an unknown ISBN consumes the item |
 | `CoverDownloadServiceKernelTest` | Service instantiation, media query against real DB |
 | `ActivityPresaveTest` | `books_activity_node_presave()` hook sets title from book reference |
 
@@ -92,7 +92,7 @@ Functional tests run full HTTP request/response cycles including routing, permis
 
 | Test file | What it covers |
 |-----------|----------------|
-| `AddBookFormFunctionalTest` | Form access (anonymous denied, authenticated allowed), ISBN validation |
+| `AddBookFormFunctionalTest` | Form access (anonymous denied, authenticated allowed), ISBN validation, stub creation for an ISBN Hardcover does not know |
 
 **Note:** `ActivityControllerFunctionalTest` was not included because `ActivityController::create()` has a bug (passes 3 of 4 required constructor args). Fix the controller first, then add functional tests for activity routes.
 
