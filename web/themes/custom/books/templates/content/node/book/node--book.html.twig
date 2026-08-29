@@ -54,9 +54,15 @@
           </div>
         {% endif %}
         {% if content.field_genres | render %}
-          <div class="flex justify-between py-2 text-[0.9375rem]">
+          <div class="flex justify-between py-2 border-b border-dotted border-stone-300 text-[0.9375rem]">
             <span class="text-ink-muted uppercase text-xs tracking-wider" style="font-family: var(--font-accent);">Genres</span>
             <span class="text-ink font-medium">{{ content.field_genres }}</span>
+          </div>
+        {% endif %}
+        {% if content.field_moods | render %}
+          <div class="flex justify-between py-2 text-[0.9375rem]">
+            <span class="text-ink-muted uppercase text-xs tracking-wider" style="font-family: var(--font-accent);">Moods</span>
+            <span class="text-ink font-medium">{{ content.field_moods }}</span>
           </div>
         {% endif %}
       </div>

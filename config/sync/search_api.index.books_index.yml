@@ -6,6 +6,7 @@ dependencies:
     - field.storage.node.field_authors
     - field.storage.node.field_genres
     - field.storage.node.field_isbn
+    - field.storage.node.field_moods
     - field.storage.node.field_pages
     - field.storage.node.field_publisher
     - field.storage.node.field_release
@@ -66,6 +67,16 @@ field_settings:
     dependencies:
       config:
         - field.storage.node.field_isbn
+  mood:
+    label: 'Moods » Taxonomy term » Name'
+    datasource_id: 'entity:node'
+    property_path: 'field_moods:entity:name'
+    type: string
+    dependencies:
+      config:
+        - field.storage.node.field_moods
+      module:
+        - taxonomy
   pages:
     label: Pages
     datasource_id: 'entity:node'

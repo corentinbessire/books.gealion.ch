@@ -1,0 +1,28 @@
+uuid: e485d561-9e94-46c1-8c3b-55df299fa9b2
+langcode: en
+status: true
+dependencies:
+  config:
+    - facets.facet.moods
+  module:
+    - facets
+    - system
+  theme:
+    - books
+id: moods
+theme: books
+region: filters
+weight: 1
+provider: null
+plugin: 'facet_block:moods'
+settings:
+  id: 'facet_block:moods'
+  label: Moods
+  label_display: '0'
+  provider: facets
+  block_id: moods
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: /books
