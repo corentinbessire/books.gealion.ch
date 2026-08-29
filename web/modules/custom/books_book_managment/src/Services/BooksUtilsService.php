@@ -269,6 +269,11 @@ class BooksUtilsService {
     $queued = 0;
 
     foreach ($this->entityTypeManager->getStorage('node')->loadMultiple($nids) as $node) {
+      // `books:sync --nid=` takes whatever node id it is given, and asking a
+      // non-book for field_isbn throws InvalidArgumentException.
+      if ($node->bundle() !== 'book') {
+        continue;
+      }
       $isbn = $node->get('field_isbn')->value;
       if (empty($isbn)) {
         continue;
