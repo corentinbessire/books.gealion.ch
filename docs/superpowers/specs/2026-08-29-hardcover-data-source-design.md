@@ -111,12 +111,49 @@ be unusable, the fallback is the relational route:
 | `field_excerpt` | `book.description` | |
 | `field_serie` | `book_series[].series.name` | featured entry preferred, else first; upserted `serie` term |
 | `field_serie_position` | that entry's `position` | decimal, fractional positions preserved |
-| `field_genres` | `book.cached_tags` Genre category | all tags, uncapped; upserted `genre` terms |
-| `field_moods` | `book.cached_tags` Mood category | all tags, uncapped; upserted `mood` terms |
+| `field_genres` | `book.cached_tags` Genre category | consensus-filtered, no rank cap; upserted `genre` terms |
+| `field_moods` | `book.cached_tags` Mood category | all tags; upserted `mood` terms |
 | `field_cover` | `edition.image.url` → `book.default_cover_edition.image.url` | downloaded by `CoverDownloadService` |
 
-Genres and moods are imported in full. Tag order follows Hardcover's `count`
-descending so the most-agreed tags read first.
+Tag order follows Hardcover's `count` descending so the most-agreed tags read
+first.
+
+### Tag quality filtering
+
+Sampling seven books through the live API showed Hardcover's Genre tags carry
+substantial noise, while its Mood tags do not. Genres are free text merged from
+publisher metadata: *Pride and Prejudice* returns `Russian language`, `Comics`
+and `Religion`; *A Game of Thrones* returns `Movie`; *L'étranger* returns
+`English fiction`. Moods come from a closed picker — sixteen distinct values
+across the whole sample — and were uniformly sensible.
+
+There is **no rank cap**. A book whose ten genres are all well-agreed keeps all
+ten. Filtering is on consensus, not position:
+
+1. **Reject purely numeric tag names**, for both categories. Hardcover's data
+   contains literal junk: one sampled book returned a Mood tag of
+   `1735865543602`, a leaked timestamp.
+2. **Reject a stoplist** of non-genre labels, genres only, compared
+   case-insensitively: `General`, `Fiction`, `Literature`,
+   `Literary Collections`, `literary criticism`, `English fiction`,
+   `Juvenile Fiction`, `Juvenile Nonfiction`, `Short stories`, `Movie`.
+3. **Keep genres whose `count` is at least `max(2, 10% of the book's top genre
+   count)`.** Relative rather than absolute, so it adapts to both heavily-read
+   and obscure books.
+4. **When no genre clears the bar, import none.** On books where every tag has
+   `count: 1` there is no signal to rank by, and an empty genre list is more
+   honest than an arbitrary one — it also keeps junk terms out of the taxonomy
+   permanently.
+5. **Moods are not consensus-filtered**, only rule 1 applies.
+
+Measured against the sample, this keeps `Classics, Romance, Historical Fiction`
+for *Pride and Prejudice* and `Fantasy, Adventure, High Fantasy, Epic Fantasy`
+for *A Game of Thrones*, while dropping every junk tag listed above.
+
+Tag names are normalised so equivalent tags collapse to one term. Hardcover's
+casing is inconsistent within a single book — Oathbringer returns `Adventurous`
+alongside `emotional` and `tense` — which without normalisation would create
+separate taxonomy terms per casing.
 
 `BooksUtilsService::getTermByName()` already handles the upsert-by-name pattern
 for publishers and authors and is reused unchanged for series, genres, and moods.
@@ -331,8 +368,8 @@ Following the module's existing test layout.
 
 **Kernel**
 
-- `BooksUtilsServiceKernelTest` — series, genre, and mood term upserts; uncapped
-  tag import; gap-fill mode leaves populated fields untouched and fills empty ones.
+- `BooksUtilsServiceKernelTest` — series, genre, and mood term upserts; gap-fill
+  mode leaves populated fields untouched and fills empty ones.
 - `HardcoverBookSyncKernelTest` — a rate limit leaves the item in the queue with a
   delay rather than losing it; a not-found ISBN consumes the item; a transient
   error requeues it.

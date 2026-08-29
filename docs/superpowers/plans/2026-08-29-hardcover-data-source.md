@@ -19,7 +19,8 @@
 - Token is read from `$settings['hardcover_api_token']`, already set in the gitignored `web/sites/default/settings.local.php`. **Never commit the token, never paste it into a test, fixture, spec, or log message.**
 - `User-Agent` header on every API request, per Hardcover's docs.
 - Rate limits: 5,000/day, 60/min, burst 10. Parse the IETF-draft `RateLimit` header, not the deprecated `X-RateLimit-*` headers.
-- Genres and moods are imported uncapped — every tag Hardcover returns in that category. Hardcover itself caps `cached_tags` at 10 per category.
+- No rank cap on tags. Genres are filtered on consensus: reject purely numeric names, reject the genre stoplist, then keep `count >= max(2, 10% of the book's top genre count)`; when nothing clears the bar, import no genres. Moods get only the numeric-name rejection. Hardcover itself caps `cached_tags` at 10 per category.
+- Genre stoplist, compared case-insensitively: `General`, `Fiction`, `Literature`, `Literary Collections`, `literary criticism`, `English fiction`, `Juvenile Fiction`, `Juvenile Nonfiction`, `Short stories`, `Movie`.
 - Tag names are normalised to upper-case first character so `emotional` and `Emotional` do not create duplicate taxonomy terms.
 - Test fixture: `MODULE/tests/fixtures/hardcover-oathbringer.json`, a real captured API response. Tests read it; they never hit the network.
 - Commit after every task. Branch is `feat/hardcover-data-source`.
@@ -685,17 +686,95 @@ Append these methods to `HardcoverServiceTest`:
   }
 
   /**
-   * Tests that genres and moods are imported uncapped, ranked by count.
+   * Tests that genres are consensus-filtered and moods are not.
+   *
+   * The fixture's top genre has count 13, so the bar is max(2, 1.3) = 2. That
+   * admits Fantasy (13), Science Fiction & Fantasy (3) and Fiction (2); Fiction
+   * is then removed by the stoplist. Moods keep all ten.
    *
    * @covers ::formatBookData
    */
-  public function testFormatBookDataImportsAllTags(): void {
+  public function testFormatBookDataFiltersGenresButNotMoods(): void {
     $formatted = $this->buildService()->formatBookData($this->fixtureEdition());
 
-    $this->assertCount(10, $formatted['field_genres']);
+    $this->assertSame(['Fantasy', 'Science Fiction & Fantasy'], $formatted['field_genres']);
     $this->assertCount(10, $formatted['field_moods']);
-    $this->assertSame('Fantasy', $formatted['field_genres'][0]);
     $this->assertSame('Adventurous', $formatted['field_moods'][0]);
+  }
+
+  /**
+   * Tests that low-consensus junk tags are dropped.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataDropsLowConsensusTags(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'Classics', 'count' => 22],
+      ['tag' => 'Romance', 'count' => 15],
+      ['tag' => 'Historical Fiction', 'count' => 3],
+      ['tag' => 'Russian language', 'count' => 1],
+      ['tag' => 'Comics', 'count' => 1],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Classics', 'Romance', 'Historical Fiction'], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that the stoplist removes non-genre labels.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataAppliesGenreStoplist(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'General', 'count' => 40],
+      ['tag' => 'Short stories', 'count' => 30],
+      ['tag' => 'Philosophy', 'count' => 20],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Philosophy'], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that a book with no tag consensus gets no genres at all.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataDropsAllGenresWithoutConsensus(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'Classics', 'count' => 1],
+      ['tag' => 'Romance', 'count' => 1],
+      ['tag' => 'History', 'count' => 1],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame([], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that purely numeric tag names are rejected in both categories.
+   *
+   * Hardcover's live data contains leaked timestamps as mood tags.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataRejectsNumericTags(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Mood'] = [
+      ['tag' => '1735865543602', 'count' => 99],
+      ['tag' => 'tense', 'count' => 53],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Tense'], $formatted['field_moods']);
   }
 
   /**
@@ -764,7 +843,37 @@ Expected: FAIL — `Call to undefined method ...::formatBookData()`.
 
 - [ ] **Step 3: Implement the mapping methods**
 
-Append to `HardcoverService`, before the closing brace:
+First add the tag-filtering constants to `HardcoverService`, directly after the existing `RATE_LIMIT_PATTERN` constant:
+
+```php
+  /**
+   * Minimum agreement a genre needs, as a share of the book's top genre count.
+   */
+  protected const TAG_CONSENSUS_RATIO = 0.10;
+
+  /**
+   * Absolute floor for genre agreement, whatever the top count is.
+   */
+  protected const TAG_MIN_COUNT = 2;
+
+  /**
+   * Lower-case labels that Hardcover files under Genre but which are not one.
+   */
+  protected const GENRE_STOPLIST = [
+    'general',
+    'fiction',
+    'literature',
+    'literary collections',
+    'literary criticism',
+    'english fiction',
+    'juvenile fiction',
+    'juvenile nonfiction',
+    'short stories',
+    'movie',
+  ];
+```
+
+Then append the following methods, before the closing brace:
 
 ```php
   /**
@@ -792,8 +901,8 @@ Append to `HardcoverService`, before the closing brace:
       'field_authors' => $this->extractAuthors($edition['contributions'] ?? []),
       'field_serie' => $series['name'],
       'field_serie_position' => $series['position'],
-      'field_genres' => $this->extractTags($book['cached_tags'] ?? NULL, 'Genre'),
-      'field_moods' => $this->extractTags($book['cached_tags'] ?? NULL, 'Mood'),
+      'field_genres' => $this->extractGenres($book['cached_tags'] ?? NULL),
+      'field_moods' => $this->extractMoods($book['cached_tags'] ?? NULL),
       'cover_url' => $edition['image']['url']
         ?? $book['default_cover_edition']['image']['url']
         ?? NULL,
@@ -874,35 +983,99 @@ Append to `HardcoverService`, before the closing brace:
   }
 
   /**
-   * Extracts every tag name in a cached_tags category, ranked by agreement.
+   * Extracts the genres a book should be filed under.
    *
-   * Uncapped by design: Hardcover already limits cached_tags to its top ten per
-   * category, so this returns everything it offers.
+   * Hardcover's Genre tags are free text merged from publisher metadata and
+   * carry real noise — sampled books returned 'Russian language', 'Comics' and
+   * 'Movie'. There is no rank cap; tags are filtered on agreement instead, so a
+   * book whose ten genres are all well-agreed keeps all ten. When nothing
+   * clears the bar the book gets no genres, which is more honest than an
+   * arbitrary pick and keeps junk terms out of the taxonomy.
+   *
+   * @param mixed $cachedTags
+   *   The cached_tags value, which the API types loosely as jsonb.
+   *
+   * @return string[]
+   *   Normalised genre names, most-agreed first.
+   */
+  protected function extractGenres(mixed $cachedTags): array {
+    $tags = array_values(array_filter(
+      $this->extractTags($cachedTags, 'Genre'),
+      static fn(array $tag): bool => !in_array(mb_strtolower($tag['name']), self::GENRE_STOPLIST, TRUE),
+    ));
+
+    if ($tags === []) {
+      return [];
+    }
+
+    $threshold = max(self::TAG_MIN_COUNT, $tags[0]['count'] * self::TAG_CONSENSUS_RATIO);
+
+    return array_values(array_map(
+      static fn(array $tag): string => $tag['name'],
+      array_filter($tags, static fn(array $tag): bool => $tag['count'] >= $threshold),
+    ));
+  }
+
+  /**
+   * Extracts a book's moods.
+   *
+   * Unlike genres these come from a closed picker — sixteen distinct values
+   * across the whole API sample — so they need no consensus filtering.
+   *
+   * @param mixed $cachedTags
+   *   The cached_tags value.
+   *
+   * @return string[]
+   *   Normalised mood names, most-agreed first.
+   */
+  protected function extractMoods(mixed $cachedTags): array {
+    return array_map(
+      static fn(array $tag): string => $tag['name'],
+      $this->extractTags($cachedTags, 'Mood'),
+    );
+  }
+
+  /**
+   * Extracts and cleans one cached_tags category, ranked by agreement.
    *
    * @param mixed $cachedTags
    *   The cached_tags value, which the API types loosely as jsonb.
    * @param string $category
    *   Category key, for example 'Genre' or 'Mood'.
    *
-   * @return string[]
-   *   Normalised tag names, most-agreed first.
+   * @return array
+   *   List of ['name' => string, 'count' => int], most-agreed first.
    */
   protected function extractTags(mixed $cachedTags, string $category): array {
     if (!is_array($cachedTags) || !is_array($cachedTags[$category] ?? NULL)) {
       return [];
     }
 
-    $tags = array_filter($cachedTags[$category], 'is_array');
-    usort($tags, static fn(array $a, array $b): int => ($b['count'] ?? 0) <=> ($a['count'] ?? 0));
-
-    $names = [];
-    foreach ($tags as $tag) {
-      $name = $tag['tag'] ?? NULL;
-      if (is_string($name) && trim($name) !== '') {
-        $names[] = self::normaliseTagName($name);
+    $tags = [];
+    $seen = [];
+    foreach ($cachedTags[$category] as $tag) {
+      if (!is_array($tag) || !is_string($tag['tag'] ?? NULL)) {
+        continue;
       }
+
+      $name = self::normaliseTagName($tag['tag']);
+      // Reject empty and purely numeric names. Hardcover's live data contains
+      // leaked timestamps such as '1735865543602' presented as mood tags.
+      if ($name === '' || preg_match('/^\d+$/', $name) === 1) {
+        continue;
+      }
+
+      $key = mb_strtolower($name);
+      if (isset($seen[$key])) {
+        continue;
+      }
+      $seen[$key] = TRUE;
+
+      $tags[] = ['name' => $name, 'count' => (int) ($tag['count'] ?? 0)];
     }
-    return array_values(array_unique($names));
+
+    usort($tags, static fn(array $a, array $b): int => $b['count'] <=> $a['count']);
+    return $tags;
   }
 
   /**
@@ -2476,13 +2649,20 @@ git commit -m "refactor(books): Remove Google Books and Open Library sources"
 
 ## Post-implementation notes
 
-**Genre tag noise.** The live response for Oathbringer returns genres including
-`Fiction / Fantasy / Action & Adventure` and `Epic; Fantasy; Action & Adventure; Historical`
-alongside clean ones like `Fantasy` and `Adventure`. Importing uncapped, as
-specified, means these become taxonomy terms. After the first backfill, review
-`/admin/structure/taxonomy/manage/genre/overview` and decide whether to add a
-filter rejecting tags containing `/` or `;`. That is a one-line change in
-`HardcoverService::extractTags()` and deliberately not built now.
+**Tune the genre filter against your own library.** The consensus threshold
+(`TAG_CONSENSUS_RATIO = 0.10`, `TAG_MIN_COUNT = 2`) was calibrated on a
+seven-book sample, and it is slightly blunt on books whose tags are thinly
+spread — Oathbringer loses `Adventure` and `War`, both defensible. After the
+first full backfill, review
+`/admin/structure/taxonomy/manage/genre/overview`. Junk terms surviving means
+lowering the ratio is not the answer; add the offender to `GENRE_STOPLIST`.
+Good genres going missing means the ratio is too high — try `0.05`. Both are
+one-line changes in `HardcoverService`.
+
+Note that changing the filter does not retroactively clean the taxonomy: terms
+already created stay until deleted, and because `saveBookData()` runs in
+gap-fill mode a re-sync will not remove genres already attached to a node.
+Cleaning up means deleting the unwanted terms in the taxonomy UI.
 
 **DMCA policy.** Still open, per the spec. Hardcover's docs warn that public
 sites displaying user-uploaded cover images should publish a takedown policy.
