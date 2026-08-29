@@ -4,10 +4,11 @@ namespace Drupal\books_book_managment\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\books_book_managment\Exception\HardcoverRateLimitException;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\books_book_managment\Services\CoverDownloadService;
-use Drupal\books_book_managment\Services\GoogleBooksService;
-use Drupal\books_book_managment\Services\OpenLibraryService;
+use Drupal\books_book_managment\Services\HardcoverService;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,21 +22,21 @@ class AddBookForm extends FormBase {
    *
    * @param \Drupal\isbn\IsbnToolsServiceInterface $isbnToolsService
    *   ISBN Tools Service.
-   * @param \Drupal\books_book_managment\Services\OpenLibraryService $openLibraryService
-   *   Open Library Service.
-   * @param \Drupal\books_book_managment\Services\GoogleBooksService $googleBooksService
-   *   Google Book Service.
+   * @param \Drupal\books_book_managment\Services\HardcoverService $hardcoverService
+   *   Hardcover data service.
    * @param \Drupal\books_book_managment\Services\CoverDownloadService $coverDownloadService
    *   Cover Downloader Service.
    * @param \Drupal\books_book_managment\Services\BooksUtilsService $booksUtilsService
    *   Book Utilities Service.
+   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
+   *   Queue factory, used when the API is rate limited.
    */
   public function __construct(
     protected IsbnToolsServiceInterface $isbnToolsService,
-    protected OpenLibraryService $openLibraryService,
-    protected GoogleBooksService $googleBooksService,
+    protected HardcoverService $hardcoverService,
     protected CoverDownloadService $coverDownloadService,
     protected BooksUtilsService $booksUtilsService,
+    protected QueueFactory $queueFactory,
   ) {}
 
   /**
@@ -44,10 +45,10 @@ class AddBookForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('isbn.isbn_service'),
-      $container->get('books.open_library'),
-      $container->get('books.google_books'),
+      $container->get('books.hardcover'),
       $container->get('books.cover_download'),
       $container->get('books.books_utils'),
+      $container->get('queue'),
     );
   }
 
@@ -148,49 +149,37 @@ class AddBookForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $isbn = $form_state->getValue('isbn');
-    $olBookData = $this->openLibraryService
-      ->getFormattedBookData($isbn) ?? [];
 
-    $gbBookData = $this->googleBooksService
-      ->getFormattedBookData($isbn) ?? [];
-
-    $bookData = $this->mergeBookData($gbBookData, $olBookData);
-
-    if ($bookData) {
-      $cover = $this->coverDownloadService
-        ->downloadBookCover($isbn);
-      if ($cover) {
-        $bookData['field_cover'] = $cover;
-      }
-      $book = $this->booksUtilsService
-        ->saveBookData($isbn, $bookData);
-
-      $this->messenger()->addStatus($this->t('Book has been created'));
+    try {
+      $bookData = $this->hardcoverService->getFormattedBookData($isbn);
+    }
+    catch (HardcoverRateLimitException) {
+      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn]);
+      $this->queueFactory->get('hardcover_book_sync')->createItem([
+        'nid' => $book->id(),
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+      $this->messenger()->addWarning($this->t('Hardcover is rate limited right now. The book was saved and will be filled in automatically.'));
       $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+      return;
     }
-    else {
-      $this->messenger()->addWarning($this->t('No data found for given ISBN.'));
-    }
-  }
 
-  /**
-   * Merge Book Data of multiple Source.
-   *
-   * @param array $array1
-   *   Data From Source 1.
-   * @param array $array2
-   *   Data From Source 2.
-   *
-   * @return array
-   *   merged Data.
-   */
-  protected function mergeBookData(array $array1, array $array2): array {
-    $keys = array_unique(array_merge(array_keys($array1), array_keys($array2)));
-    $books_data = [];
-    foreach ($keys as $key) {
-      $books_data[$key] = $array1[$key] ?? $array2[$key];
+    if ($bookData === NULL) {
+      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn]);
+      $this->messenger()->addWarning($this->t('Hardcover has no data for this ISBN. The book was created — please fill in the details.'));
+      $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+      return;
     }
-    return $books_data;
+
+    $cover = $this->coverDownloadService->downloadBookCover($isbn, $bookData['cover_url'] ?? NULL);
+    if ($cover) {
+      $bookData['field_cover'] = $cover;
+    }
+
+    $book = $this->booksUtilsService->saveBookData($isbn, $bookData);
+    $this->messenger()->addStatus($this->t('Book has been created'));
+    $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
   }
 
 }

@@ -24,6 +24,7 @@ services:
       - '@logger.factory'
       - '@entity_type.manager'
       - '@file_system'
+      - '@queue'
   books.cover_download:
     class: Drupal\books_book_managment\Services\CoverDownloadService
     arguments:

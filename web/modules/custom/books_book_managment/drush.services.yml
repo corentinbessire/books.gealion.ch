@@ -3,5 +3,5 @@ services:
     class: \Drupal\books_book_managment\Commands\BooksBookManagmentCommands
     tags:
       - { name: drush.command }
-    arguments: [ '@books.books_utils' ]
+    arguments: [ '@books.books_utils', '@queue', '@plugin.manager.queue_worker' ]
 

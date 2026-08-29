@@ -4,7 +4,9 @@ namespace Drupal\books_book_managment\Services;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Queue\QueueFactory;
 
 /**
  * Custom Service to handle various Book related actions.
@@ -18,10 +20,16 @@ class BooksUtilsService {
    *   The logger channel factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
+   *   The file system service.
+   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
+   *   Queue factory, used to enqueue books for a Hardcover sync.
    */
   public function __construct(
     protected LoggerChannelFactoryInterface $loggerChannelFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected FileSystemInterface $fileSystem,
+    protected QueueFactory $queueFactory,
   ) {}
 
   /**
@@ -240,6 +248,38 @@ class BooksUtilsService {
       ->accessCheck()
       ->execute();
     return $nids;
+  }
+
+  /**
+   * Queues book nodes for a Hardcover sync.
+   *
+   * @param array $nids
+   *   Node IDs to queue.
+   *
+   * @return int
+   *   Number of items queued.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function queueBooksForSync(array $nids): int {
+    $queue = $this->queueFactory->get('hardcover_book_sync');
+    $queued = 0;
+
+    foreach ($this->entityTypeManager->getStorage('node')->loadMultiple($nids) as $node) {
+      $isbn = $node->get('field_isbn')->value;
+      if (empty($isbn)) {
+        continue;
+      }
+      $queue->createItem([
+        'nid' => (int) $node->id(),
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+      $queued++;
+    }
+
+    return $queued;
   }
 
 }

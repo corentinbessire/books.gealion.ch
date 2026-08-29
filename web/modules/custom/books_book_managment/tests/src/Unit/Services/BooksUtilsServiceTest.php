@@ -8,8 +8,11 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 
@@ -36,6 +39,13 @@ class BooksUtilsServiceTest extends UnitTestCase {
   protected $entityTypeManager;
 
   /**
+   * The queue factory mock.
+   *
+   * @var \Drupal\Core\Queue\QueueFactory|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $queueFactory;
+
+  /**
    * The service under test.
    *
    * @var \Drupal\books_book_managment\Services\BooksUtilsService
@@ -53,10 +63,14 @@ class BooksUtilsServiceTest extends UnitTestCase {
     $this->loggerFactory->method('get')->willReturn($logger);
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $fileSystem = $this->createMock(FileSystemInterface::class);
+    $this->queueFactory = $this->createMock(QueueFactory::class);
 
     $this->booksUtilsService = new BooksUtilsService(
       $this->loggerFactory,
-      $this->entityTypeManager
+      $this->entityTypeManager,
+      $fileSystem,
+      $this->queueFactory
     );
   }
 
@@ -248,6 +262,51 @@ class BooksUtilsServiceTest extends UnitTestCase {
 
     $result = $this->booksUtilsService->getBooksMissingCover();
     $this->assertEmpty($result);
+  }
+
+  /**
+   * Tests queueBooksForSync() enqueues one item per book with an ISBN.
+   *
+   * @covers ::queueBooksForSync
+   */
+  public function testQueueBooksForSyncSkipsBooksWithoutIsbn(): void {
+    $withIsbn = $this->createMock(NodeInterface::class);
+    $withIsbn->method('id')->willReturn(1);
+    $isbnField = (object) ['value' => '9780765326379'];
+    $withIsbn->method('get')->with('field_isbn')->willReturn($isbnField);
+
+    $withoutIsbn = $this->createMock(NodeInterface::class);
+    $withoutIsbn->method('id')->willReturn(2);
+    $emptyIsbnField = (object) ['value' => ''];
+    $withoutIsbn->method('get')->with('field_isbn')->willReturn($emptyIsbnField);
+
+    $storage = $this->createMock(EntityStorageInterface::class);
+    $storage->expects($this->once())
+      ->method('loadMultiple')
+      ->with([1, 2])
+      ->willReturn([$withIsbn, $withoutIsbn]);
+
+    $this->entityTypeManager->expects($this->any())
+      ->method('getStorage')
+      ->with('node')
+      ->willReturn($storage);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with([
+        'nid' => 1,
+        'isbn' => '9780765326379',
+        'only_fill_gaps' => TRUE,
+      ]);
+
+    $this->queueFactory->expects($this->once())
+      ->method('get')
+      ->with('hardcover_book_sync')
+      ->willReturn($queue);
+
+    $result = $this->booksUtilsService->queueBooksForSync([1, 2]);
+    $this->assertSame(1, $result);
   }
 
 }
