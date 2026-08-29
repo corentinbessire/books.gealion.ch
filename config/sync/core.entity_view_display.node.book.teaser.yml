@@ -9,11 +9,13 @@ dependencies:
     - field.field.node.book.field_excerpt
     - field.field.node.book.field_genres
     - field.field.node.book.field_isbn
+    - field.field.node.book.field_moods
     - field.field.node.book.field_pages
     - field.field.node.book.field_publisher
     - field.field.node.book.field_release
     - field.field.node.book.field_serie
     - field.field.node.book.field_serie_number
+    - field.field.node.book.field_serie_position
     - node.type.book
   module:
     - user
@@ -41,10 +43,12 @@ hidden:
   field_excerpt: true
   field_genres: true
   field_isbn: true
+  field_moods: true
   field_pages: true
   field_publisher: true
   field_release: true
   field_serie: true
   field_serie_number: true
+  field_serie_position: true
   flag_to_be_read: true
   search_api_excerpt: true

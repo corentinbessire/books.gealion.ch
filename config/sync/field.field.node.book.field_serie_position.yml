@@ -1,0 +1,23 @@
+uuid: acf12985-c2d2-4e46-8687-dc54af2118c6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_serie_position
+    - node.type.book
+id: node.book.field_serie_position
+field_name: field_serie_position
+entity_type: node
+bundle: book
+label: 'Series position'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: decimal

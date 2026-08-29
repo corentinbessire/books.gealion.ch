@@ -1,0 +1,9 @@
+uuid: e81fb739-8ccf-4e7d-b0b9-4f0471936e0a
+langcode: en
+status: true
+dependencies: {  }
+name: Mood
+vid: mood
+description: null
+weight: 0
+new_revision: false

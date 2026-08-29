@@ -1,0 +1,29 @@
+uuid: 7d7cde66-b2e0-4334-a47d-3e41b6ae4bcd
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_moods
+    - node.type.book
+    - taxonomy.vocabulary.mood
+id: node.book.field_moods
+field_name: field_moods
+entity_type: node
+bundle: book
+label: Moods
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      mood: mood
+    sort:
+      field: name
+      direction: asc
+    auto_create: true
+    auto_create_bundle: ''
+field_type: entity_reference
