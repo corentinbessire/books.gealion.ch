@@ -25,6 +25,7 @@ class ActivityPresaveTest extends KernelTestBase {
     'text',
     'file',
     'user',
+    'isbn',
     'books_activity',
     'books_book_managment',
   ];
