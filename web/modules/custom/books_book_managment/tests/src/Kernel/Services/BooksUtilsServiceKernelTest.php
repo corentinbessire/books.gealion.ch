@@ -29,6 +29,7 @@ class BooksUtilsServiceKernelTest extends KernelTestBase {
     'text',
     'file',
     'user',
+    'isbn',
     'books_book_managment',
   ];
 
