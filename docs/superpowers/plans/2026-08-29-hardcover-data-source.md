@@ -164,7 +164,10 @@ class HardcoverServiceTest extends UnitTestCase {
     $this->isbnTools = $this->createMock(IsbnToolsServiceInterface::class);
     $this->isbnTools->method('convertIsbn13to10')->willReturn('0765326379');
     $this->time = $this->createMock(TimeInterface::class);
-    $this->time->method('getRequestTime')->willReturn(1000);
+    // getCurrentTime, not getRequestTime: the latter is frozen for the life of
+    // the PHP process, so a throttle set during a long-running queue drain
+    // could never self-clear.
+    $this->time->method('getCurrentTime')->willReturn(1000);
   }
 
   /**
@@ -193,7 +196,7 @@ class HardcoverServiceTest extends UnitTestCase {
    *   Raw JSON body.
    */
   protected function fixture(): string {
-    return file_get_contents(__DIR__ . '/../../../../fixtures/hardcover-oathbringer.json');
+    return file_get_contents(__DIR__ . '/../../../fixtures/hardcover-oathbringer.json');
   }
 
   /**
@@ -437,7 +440,8 @@ class HardcoverService {
    * @param \Drupal\isbn\IsbnToolsServiceInterface $isbnTools
    *   ISBN tools service, used to derive the ISBN-10.
    * @param \Drupal\Component\Datetime\TimeInterface $time
-   *   Time service.
+   *   Time service. Elapsed-time decisions use getCurrentTime(), never
+   *   getRequestTime(), which is frozen for the life of the process.
    */
   public function __construct(
     protected ClientInterface $httpClient,
@@ -468,7 +472,7 @@ class HardcoverService {
       return NULL;
     }
 
-    $now = $this->time->getRequestTime();
+    $now = $this->time->getCurrentTime();
     if ($this->throttledUntil > $now) {
       throw new HardcoverRateLimitException($this->throttledUntil - $now);
     }
@@ -496,7 +500,10 @@ class HardcoverService {
     }
 
     if ($response->getStatusCode() === 429) {
-      $retryAfter = max(1, (int) $response->getHeaderLine('Retry-After') ?: 60);
+      // Parse before applying the floor: `(int) $h ?: 60` would turn an
+      // explicit `Retry-After: 0` into a full minute's wait.
+      $header = $response->getHeaderLine('Retry-After');
+      $retryAfter = is_numeric($header) ? max(1, (int) $header) : 60;
       $this->throttledUntil = $now + $retryAfter;
       throw new HardcoverRateLimitException($retryAfter);
     }
