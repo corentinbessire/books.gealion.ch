@@ -7,7 +7,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\FileRepositoryInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 
 /**
  * Custom Service to Download BookCover.
@@ -88,7 +88,9 @@ class CoverDownloadService {
       $file->setPermanent();
       $file->save();
     }
-    catch (RequestException $e) {
+    // TransferException also covers ConnectException, which RequestException
+    // does not: a cover host that fails to resolve must not take the page down.
+    catch (TransferException $e) {
       $this->loggerChannelFactory->get('CoverDownloadService')
         ->alert($e->getCode() . ' : ' . $e->getMessage());
       return NULL;

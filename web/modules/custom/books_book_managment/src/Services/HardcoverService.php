@@ -8,7 +8,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -162,7 +162,11 @@ class HardcoverService {
         'http_errors' => FALSE,
       ]);
     }
-    catch (RequestException $e) {
+    // TransferException, not RequestException: a DNS failure, a refused
+    // connection or a timeout arrives as ConnectException, which is a sibling
+    // of RequestException and would otherwise escape and white-screen the
+    // caller.
+    catch (TransferException $e) {
       $logger->alert($e->getCode() . ' : ' . $e->getMessage());
       return NULL;
     }

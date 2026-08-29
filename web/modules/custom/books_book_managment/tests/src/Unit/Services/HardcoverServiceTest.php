@@ -11,6 +11,8 @@ use Drupal\Core\Site\Settings;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Drupal\Tests\UnitTestCase;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 
 /**
@@ -120,6 +122,24 @@ class HardcoverServiceTest extends UnitTestCase {
       ->willReturn(new Response(200, [], '{"data":{"editions":[]}}'));
 
     $this->assertNull($this->buildService()->getBookData('9780000000000'));
+  }
+
+  /**
+   * Tests that a connection failure is swallowed rather than thrown.
+   *
+   * ConnectException extends TransferException but not RequestException, so
+   * catching only the latter let a DNS or timeout failure escape the service.
+   *
+   * @covers ::getBookData
+   */
+  public function testGetBookDataReturnsNullOnConnectionFailure(): void {
+    $this->httpClient->method('request')
+      ->willThrowException(new ConnectException(
+        'cURL error 6: Could not resolve host: api.hardcover.app',
+        new Request('POST', HardcoverService::API_ENDPOINT)
+      ));
+
+    $this->assertNull($this->buildService()->getBookData('9780765326379'));
   }
 
   /**

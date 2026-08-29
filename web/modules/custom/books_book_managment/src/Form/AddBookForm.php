@@ -5,6 +5,7 @@ namespace Drupal\books_book_managment\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\books_book_managment\Exception\HardcoverRateLimitException;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\books_book_managment\Services\CoverDownloadService;
@@ -154,24 +155,34 @@ class AddBookForm extends FormBase {
       $bookData = $this->hardcoverService->getFormattedBookData($isbn);
     }
     catch (HardcoverRateLimitException) {
-      // Gap-fill mode: getBook() may well return a book that is already in the
-      // library, and its real title must not be replaced by the raw ISBN.
-      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
-      $this->queueFactory->get('hardcover_book_sync')->createItem([
-        'nid' => $book->id(),
-        'isbn' => $isbn,
-        'only_fill_gaps' => TRUE,
-      ]);
-      $this->messenger()->addWarning($this->t('Hardcover is rate limited right now. The book was saved and will be filled in automatically.'));
-      $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover is rate limited right now. The book was saved and will be filled in automatically.'),
+        TRUE
+      );
+      return;
+    }
+    catch (\Exception) {
+      // Anything else — a dropped connection, a malformed response — must not
+      // white-screen the form: a scanned barcode is never allowed to be lost.
+      // The book is stubbed out and the queue fills it in later.
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover could not be reached. The book was saved and will be filled in automatically.'),
+        TRUE
+      );
       return;
     }
 
     if ($bookData === NULL) {
-      // Gap-fill mode, for the same reason as above.
-      $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
-      $this->messenger()->addWarning($this->t('Hardcover has no data for this ISBN. The book was created — please fill in the details.'));
-      $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover has no data for this ISBN. The book was created — please fill in the details.'),
+        FALSE
+      );
       return;
     }
 
@@ -182,6 +193,38 @@ class AddBookForm extends FormBase {
 
     $book = $this->booksUtilsService->saveBookData($isbn, $bookData);
     $this->messenger()->addStatus($this->t('Book has been created'));
+    $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+  }
+
+  /**
+   * Saves a book holding nothing but its ISBN and redirects to it.
+   *
+   * Always gap-filling: getBook() resolves an existing node by its stored
+   * ISBN, so rescanning a book already in the library must not overwrite its
+   * title with the bare barcode.
+   *
+   * @param string $isbn
+   *   The scanned ISBN.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state, redirected to the saved node.
+   * @param \Drupal\Core\StringTranslation\TranslatableMarkup $message
+   *   Warning shown to the user.
+   * @param bool $queue
+   *   Whether to queue a Hardcover sync, which only makes sense when the
+   *   lookup failed rather than when Hardcover simply has no record.
+   */
+  protected function saveStub(string $isbn, FormStateInterface $form_state, TranslatableMarkup $message, bool $queue): void {
+    $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
+
+    if ($queue) {
+      $this->queueFactory->get('hardcover_book_sync')->createItem([
+        'nid' => $book->id(),
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+    }
+
+    $this->messenger()->addWarning($message);
     $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
   }
 

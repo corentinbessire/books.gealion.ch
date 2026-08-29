@@ -15,6 +15,8 @@ use Drupal\Core\Queue\QueueInterface;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 
 /**
  * Unit tests for AddBookForm.
@@ -130,6 +132,56 @@ class AddBookFormTest extends UnitTestCase {
     $formState->expects($this->once())
       ->method('setRedirect')
       ->with('entity.node.canonical', ['node' => 42]);
+
+    $this->form->submitForm($form, $formState);
+  }
+
+  /**
+   * Tests that a connection failure still saves a stub and queues a sync.
+   *
+   * A ConnectException is not a RequestException, so it used to travel all the
+   * way out of submitForm() and white-screen the page, losing the barcode the
+   * user had just scanned.
+   *
+   * @covers ::submitForm
+   */
+  public function testSubmitFormQueuesSyncOnConnectionFailure(): void {
+    $isbn = '9780765326379';
+
+    $this->hardcoverService->method('getFormattedBookData')
+      ->with($isbn)
+      ->willThrowException(new ConnectException(
+        'cURL error 6: Could not resolve host: api.hardcover.app',
+        new Request('POST', HardcoverService::API_ENDPOINT)
+      ));
+
+    $book = $this->createMock(NodeInterface::class);
+    $book->method('id')->willReturn(11);
+
+    $this->booksUtilsService->expects($this->once())
+      ->method('saveBookData')
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
+      ->willReturn($book);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with([
+        'nid' => 11,
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+    $this->queueFactory->expects($this->once())
+      ->method('get')
+      ->with('hardcover_book_sync')
+      ->willReturn($queue);
+
+    $form = [];
+    $formState = $this->createMock(FormStateInterface::class);
+    $formState->method('getValue')->with('isbn')->willReturn($isbn);
+    $formState->expects($this->once())
+      ->method('setRedirect')
+      ->with('entity.node.canonical', ['node' => 11]);
 
     $this->form->submitForm($form, $formState);
   }
