@@ -1,15 +1,4 @@
 services:
-  books.google_books:
-    class: Drupal\books_book_managment\Services\GoogleBooksService
-    arguments:
-      - '@http_client'
-      - '@logger.factory'
-      - '@settings'
-  books.open_library:
-    class: Drupal\books_book_managment\Services\OpenLibraryService
-    arguments:
-        - '@http_client'
-        - '@logger.factory'
   books.hardcover:
     class: Drupal\books_book_managment\Services\HardcoverService
     arguments:
