@@ -283,4 +283,210 @@ class HardcoverServiceTest extends UnitTestCase {
     $this->assertSame([], HardcoverService::parseRateLimitHeader('not a header'));
   }
 
+  /**
+   * Decodes the fixture down to the single edition array.
+   *
+   * @return array
+   *   The edition array.
+   */
+  protected function fixtureEdition(): array {
+    $data = json_decode($this->fixture(), TRUE);
+    return $data['data']['editions'][0];
+  }
+
+  /**
+   * Tests scalar field mapping.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataMapsScalars(): void {
+    $formatted = $this->buildService()->formatBookData($this->fixtureEdition());
+
+    $this->assertSame('Oathbringer', $formatted['title']);
+    $this->assertSame('9780765326379', $formatted['field_isbn']);
+    $this->assertSame(1243, $formatted['field_pages']);
+    $this->assertSame('2017-11-14', $formatted['field_release']);
+    $this->assertSame('Tor Books', $formatted['field_publisher']);
+    $this->assertSame(['Brandon Sanderson'], $formatted['field_authors']);
+    $this->assertStringContainsString('Stormlight Archive', $formatted['field_excerpt']);
+  }
+
+  /**
+   * Tests that the featured series wins and its position is kept as a float.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataPrefersFeaturedSeries(): void {
+    $formatted = $this->buildService()->formatBookData($this->fixtureEdition());
+
+    $this->assertSame('The Stormlight Archive', $formatted['field_serie']);
+    $this->assertSame(3.0, $formatted['field_serie_position']);
+  }
+
+  /**
+   * Tests that a fractional series position survives mapping.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataKeepsFractionalPosition(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['book_series'] = [
+      ['position' => 1.5, 'featured' => TRUE, 'series' => ['name' => 'Novellas']],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(1.5, $formatted['field_serie_position']);
+  }
+
+  /**
+   * Tests that genres are consensus-filtered and moods are not.
+   *
+   * The fixture's top genre has count 13, so the bar is max(2, 1.3) = 2. That
+   * admits Fantasy (13), Science Fiction & Fantasy (3) and Fiction (2); Fiction
+   * is then removed by the stoplist. Moods keep all ten.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataFiltersGenresButNotMoods(): void {
+    $formatted = $this->buildService()->formatBookData($this->fixtureEdition());
+
+    $this->assertSame(['Fantasy', 'Science Fiction & Fantasy'], $formatted['field_genres']);
+    $this->assertCount(10, $formatted['field_moods']);
+    $this->assertSame('Adventurous', $formatted['field_moods'][0]);
+  }
+
+  /**
+   * Tests that low-consensus junk tags are dropped.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataDropsLowConsensusTags(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'Classics', 'count' => 22],
+      ['tag' => 'Romance', 'count' => 15],
+      ['tag' => 'Historical Fiction', 'count' => 3],
+      ['tag' => 'Russian language', 'count' => 1],
+      ['tag' => 'Comics', 'count' => 1],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Classics', 'Romance', 'Historical Fiction'], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that the stoplist removes non-genre labels.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataAppliesGenreStoplist(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'General', 'count' => 40],
+      ['tag' => 'Short stories', 'count' => 30],
+      ['tag' => 'Philosophy', 'count' => 20],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Philosophy'], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that a book with no tag consensus gets no genres at all.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataDropsAllGenresWithoutConsensus(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Genre'] = [
+      ['tag' => 'Classics', 'count' => 1],
+      ['tag' => 'Romance', 'count' => 1],
+      ['tag' => 'History', 'count' => 1],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame([], $formatted['field_genres']);
+  }
+
+  /**
+   * Tests that purely numeric tag names are rejected in both categories.
+   *
+   * Hardcover's live data contains leaked timestamps as mood tags.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataRejectsNumericTags(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags']['Mood'] = [
+      ['tag' => '1735865543602', 'count' => 99],
+      ['tag' => 'tense', 'count' => 53],
+    ];
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame(['Tense'], $formatted['field_moods']);
+  }
+
+  /**
+   * Tests that lower-case tags are normalised so terms do not duplicate.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataNormalisesTagCase(): void {
+    $formatted = $this->buildService()->formatBookData($this->fixtureEdition());
+
+    $this->assertContains('Emotional', $formatted['field_moods']);
+    $this->assertNotContains('emotional', $formatted['field_moods']);
+  }
+
+  /**
+   * Tests that malformed cached_tags degrade to empty lists.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataToleratesBrokenTags(): void {
+    $edition = $this->fixtureEdition();
+    $edition['book']['cached_tags'] = 'not-an-array';
+
+    $formatted = $this->buildService()->formatBookData($edition);
+
+    $this->assertSame([], $formatted['field_genres']);
+    $this->assertSame([], $formatted['field_moods']);
+  }
+
+  /**
+   * Tests the cover URL and its fallback to the default cover edition.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataCoverUrlFallsBack(): void {
+    $service = $this->buildService();
+    $edition = $this->fixtureEdition();
+
+    $this->assertStringContainsString('assets.hardcover.app', $service->formatBookData($edition)['cover_url']);
+
+    $edition['image'] = NULL;
+    $edition['book']['default_cover_edition']['image']['url'] = 'https://example.com/fallback.jpg';
+    $this->assertSame('https://example.com/fallback.jpg', $service->formatBookData($edition)['cover_url']);
+
+    $edition['book']['default_cover_edition'] = NULL;
+    $this->assertNull($service->formatBookData($edition)['cover_url']);
+  }
+
+  /**
+   * Tests that a missing release date maps to NULL rather than a bogus date.
+   *
+   * @covers ::formatBookData
+   */
+  public function testFormatBookDataHandlesMissingDate(): void {
+    $edition = $this->fixtureEdition();
+    $edition['release_date'] = NULL;
+
+    $this->assertNull($this->buildService()->formatBookData($edition)['field_release']);
+  }
+
 }
