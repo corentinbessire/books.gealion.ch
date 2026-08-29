@@ -1127,7 +1127,7 @@ Then append the following methods, before the closing brace:
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `ddev phpunit web/modules/custom/books_book_managment/tests/src/Unit/Services/HardcoverServiceTest.php`
-Expected: PASS, 15 tests.
+Expected: PASS, 21 tests (9 from Task 1 plus 12 new).
 
 - [ ] **Step 5: Lint and commit**
 
