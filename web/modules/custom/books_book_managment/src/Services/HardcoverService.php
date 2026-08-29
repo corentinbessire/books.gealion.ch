@@ -145,7 +145,7 @@ class HardcoverService {
       throw new HardcoverRateLimitException($this->throttledUntil - $now);
     }
 
-    $isbn13 = (string) $isbn;
+    $isbn13 = $this->normaliseToIsbn13((string) $isbn);
     $isbn10 = $this->isbnTools->convertIsbn13to10($isbn13) ?? '';
 
     try {
@@ -204,6 +204,29 @@ class HardcoverService {
     }
 
     return reset($editions);
+  }
+
+  /**
+   * Normalises any accepted ISBN form to a bare ISBN-13.
+   *
+   * AddBookForm's validator accepts ISBN-10, and both GraphQL comparisons are
+   * exact string equality, so an ISBN-10 handed straight to the query matches
+   * neither _or branch and an older book silently comes back as "no data".
+   *
+   * @param string $isbn
+   *   An ISBN-10 or ISBN-13, hyphenated or not.
+   *
+   * @return string
+   *   The ISBN-13, or the cleaned input when it cannot be converted.
+   */
+  protected function normaliseToIsbn13(string $isbn): string {
+    $isbn = preg_replace('/[^0-9Xx]/', '', $isbn);
+
+    if (strlen($isbn) === 10) {
+      return $this->isbnTools->convertIsbn10to13($isbn) ?? $isbn;
+    }
+
+    return $isbn;
   }
 
   /**

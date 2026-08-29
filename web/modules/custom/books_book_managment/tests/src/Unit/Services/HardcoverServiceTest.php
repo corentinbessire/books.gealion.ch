@@ -125,6 +125,34 @@ class HardcoverServiceTest extends UnitTestCase {
   }
 
   /**
+   * Tests that an ISBN-10 is converted before the query is sent.
+   *
+   * Both GraphQL comparisons are exact, so an unconverted ISBN-10 matched
+   * neither the isbn_13 nor the isbn_10 branch and every older book came back
+   * as "no data" plus a stub node.
+   *
+   * @covers ::getBookData
+   */
+  public function testGetBookDataConvertsIsbn10(): void {
+    $this->isbnTools->method('convertIsbn10to13')
+      ->with('0765326379')
+      ->willReturn('9780765326379');
+
+    $variables = NULL;
+    $this->httpClient->method('request')
+      ->willReturnCallback(function ($method, $uri, array $options) use (&$variables) {
+        $variables = $options['json']['variables'];
+        return new Response(200, [], $this->fixture());
+      });
+
+    $edition = $this->buildService()->getBookData('0-7653-2637-9');
+
+    $this->assertSame('9780765326379', $variables['isbn13']);
+    $this->assertSame('0765326379', $variables['isbn10']);
+    $this->assertSame('Oathbringer', $edition['title']);
+  }
+
+  /**
    * Tests that a connection failure is swallowed rather than thrown.
    *
    * ConnectException extends TransferException but not RequestException, so
