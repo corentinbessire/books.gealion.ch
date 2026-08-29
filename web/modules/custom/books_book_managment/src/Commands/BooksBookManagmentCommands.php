@@ -46,7 +46,7 @@ class BooksBookManagmentCommands extends DrushCommands {
   /**
    * Queue books for a Hardcover sync.
    *
-   * @param array<string, mixed> $options
+   * @param array $options
    *   Command options.
    *
    * @option nid
