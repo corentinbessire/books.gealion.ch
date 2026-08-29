@@ -1837,7 +1837,13 @@ Replace `saveBookData()` in `BooksUtilsService` with:
       'field_serie_position',
     ];
     foreach ($simpleFields as $field) {
-      if (empty($data[$field]) || !$this->shouldWrite($book, $field, $onlyFillGaps)) {
+      // Presence, not truthiness: empty() would drop a legitimate 0 for
+      // field_pages or field_serie_position. Note field_cover holds a media
+      // entity object, so the comparison must not assume a scalar.
+      if (!array_key_exists($field, $data) || $data[$field] === NULL || $data[$field] === '') {
+        continue;
+      }
+      if (!$this->shouldWrite($book, $field, $onlyFillGaps)) {
         continue;
       }
       $book->set($field, $data[$field]);
