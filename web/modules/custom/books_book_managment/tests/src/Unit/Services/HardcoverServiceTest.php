@@ -68,7 +68,7 @@ class HardcoverServiceTest extends UnitTestCase {
   /**
    * Builds the service with a given settings array.
    *
-   * @param array $settings
+   * @param array<string, mixed> $settings
    *   Settings to seed the Settings singleton with.
    *
    * @return \Drupal\books_book_managment\Services\HardcoverService
@@ -286,7 +286,7 @@ class HardcoverServiceTest extends UnitTestCase {
   /**
    * Decodes the fixture down to the single edition array.
    *
-   * @return array
+   * @return array<string, mixed>
    *   The edition array.
    */
   protected function fixtureEdition(): array {

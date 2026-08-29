@@ -33,7 +33,7 @@ class HardcoverBookSync extends QueueWorkerBase implements ContainerFactoryPlugi
   /**
    * Constructs a HardcoverBookSync worker.
    *
-   * @param array $configuration
+   * @param array<string, mixed> $configuration
    *   Plugin configuration.
    * @param string $plugin_id
    *   Plugin id.
@@ -62,6 +62,8 @@ class HardcoverBookSync extends QueueWorkerBase implements ContainerFactoryPlugi
 
   /**
    * {@inheritdoc}
+   *
+   * @phpstan-param array<string, mixed> $configuration
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
@@ -78,7 +80,7 @@ class HardcoverBookSync extends QueueWorkerBase implements ContainerFactoryPlugi
   /**
    * {@inheritdoc}
    */
-  public function processItem($data) {
+  public function processItem($data): void {
     $logger = $this->loggerChannelFactory->get('HardcoverBookSync');
     $isbn = $data['isbn'] ?? NULL;
     $onlyFillGaps = $data['only_fill_gaps'] ?? TRUE;

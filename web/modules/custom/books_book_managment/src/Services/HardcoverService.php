@@ -125,7 +125,7 @@ class HardcoverService {
    * @param string|int $isbn
    *   ISBN of the book to look up.
    *
-   * @return array|null
+   * @return array<string, mixed>|null
    *   The edition array, or NULL when not found or not configured.
    *
    * @throws \Drupal\books_book_managment\Exception\HardcoverRateLimitException
@@ -229,7 +229,7 @@ class HardcoverService {
    * @param string $header
    *   The raw header value.
    *
-   * @return array
+   * @return array<int, array{name: string, remaining: int, reset: int}>
    *   List of ['name' => string, 'remaining' => int, 'reset' => int].
    */
   public static function parseRateLimitHeader(string $header): array {
@@ -252,10 +252,10 @@ class HardcoverService {
    *
    * Pure: no I/O, so it is unit-testable against a captured response.
    *
-   * @param array $edition
+   * @param array<string, mixed> $edition
    *   The raw edition array from the API.
    *
-   * @return array
+   * @return array<string, mixed>
    *   Formatted data keyed by field name, plus a 'cover_url' key.
    */
   public function formatBookData(array $edition): array {
@@ -286,7 +286,7 @@ class HardcoverService {
    * @param string|int $isbn
    *   ISBN of the book.
    *
-   * @return array|null
+   * @return array<string, mixed>|null
    *   Formatted data, or NULL when Hardcover has no match.
    *
    * @throws \Drupal\books_book_managment\Exception\HardcoverRateLimitException
@@ -300,7 +300,7 @@ class HardcoverService {
   /**
    * Extracts author names from an edition's contributions.
    *
-   * @param array $contributions
+   * @param array<int, mixed> $contributions
    *   The contributions array.
    *
    * @return string[]
@@ -323,10 +323,10 @@ class HardcoverService {
    * A book can belong to several series; Hardcover marks one as featured. The
    * featured entry wins, otherwise the first is used.
    *
-   * @param array $bookSeries
+   * @param array<int, mixed> $bookSeries
    *   The book_series array.
    *
-   * @return array
+   * @return array{name: string|null, position: float|null}
    *   ['name' => string|null, 'position' => float|null].
    */
   protected function extractSeries(array $bookSeries): array {
@@ -414,7 +414,7 @@ class HardcoverService {
    * @param string $category
    *   Category key, for example 'Genre' or 'Mood'.
    *
-   * @return array
+   * @return array<int, array{name: string, count: int}>
    *   List of ['name' => string, 'count' => int], most-agreed first.
    */
   protected function extractTags(mixed $cachedTags, string $category): array {

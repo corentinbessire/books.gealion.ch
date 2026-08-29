@@ -3,12 +3,12 @@
 namespace Drupal\Tests\books_book_managment\Kernel\Services;
 
 use Drupal\books_book_managment\Services\BooksUtilsService;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\node\NodeInterface;
 use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
@@ -361,13 +361,13 @@ class BooksUtilsServiceKernelTest extends KernelTestBase {
    * only reflected as such once the entity is reloaded; the in-memory
    * entity still holds whatever PHP type was assigned to it.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $book
+   * @param \Drupal\node\NodeInterface $book
    *   The book node to reload.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\node\NodeInterface
    *   The reloaded book node.
    */
-  protected function reloadBook(EntityInterface $book): EntityInterface {
+  protected function reloadBook(NodeInterface $book): NodeInterface {
     return $this->container->get('entity_type.manager')
       ->getStorage('node')
       ->loadUnchanged($book->id());

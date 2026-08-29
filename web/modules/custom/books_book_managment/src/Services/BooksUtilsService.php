@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\node\NodeInterface;
 
 /**
  * Custom Service to handle various Book related actions.
@@ -33,21 +34,26 @@ class BooksUtilsService {
    *
    * @param string $isbn
    *   ISBN-13 of the book.
-   * @param array $data
+   * @param array<string, mixed> $data
    *   Formatted data keyed by field name.
    * @param bool $onlyFillGaps
    *   When TRUE, only fields that are currently empty are written, so manual
    *   corrections survive a re-sync.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\node\NodeInterface
    *   The saved book node.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public function saveBookData(string $isbn, array $data, bool $onlyFillGaps = FALSE): EntityInterface {
+  public function saveBookData(string $isbn, array $data, bool $onlyFillGaps = FALSE): NodeInterface {
     $book = $this->getBook($isbn);
+    if ($book === NULL) {
+      // getBook() only returns NULL when told not to create a node, which
+      // never happens here since we call it with its default arguments.
+      throw new \RuntimeException(sprintf('Could not load or create a book node for ISBN %s.', $isbn));
+    }
 
     if (!$onlyFillGaps || $book->isNew() || $book->getTitle() === NULL || $book->getTitle() === '') {
       $book->setTitle($data['title'] ?? $isbn);
@@ -104,7 +110,7 @@ class BooksUtilsService {
   /**
    * Decides whether a field should be written.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $book
+   * @param \Drupal\node\NodeInterface $book
    *   The book node.
    * @param string $field
    *   The field name.
@@ -114,7 +120,7 @@ class BooksUtilsService {
    * @return bool
    *   TRUE when the field should be written.
    */
-  protected function shouldWrite(EntityInterface $book, string $field, bool $onlyFillGaps): bool {
+  protected function shouldWrite(NodeInterface $book, string $field, bool $onlyFillGaps): bool {
     if (!$book->hasField($field)) {
       return FALSE;
     }
@@ -124,12 +130,12 @@ class BooksUtilsService {
   /**
    * Upserts terms by name and returns entity reference values.
    *
-   * @param array $names
+   * @param array<int, string> $names
    *   Term names.
    * @param string $vid
    *   Vocabulary id.
    *
-   * @return array
+   * @return array<int, array{target_id: int|string}>
    *   Entity reference field values.
    */
   protected function buildTermReferences(array $names, string $vid): array {
@@ -146,7 +152,7 @@ class BooksUtilsService {
   /**
    * Gets the node IDs of every book.
    *
-   * @return array
+   * @return array<int, int|string>
    *   Array of node IDs.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
@@ -167,13 +173,13 @@ class BooksUtilsService {
    * @param bool $create
    *   Create the Book Node if not existing.
    *
-   * @return \Drupal\Core\Entity\EntityInterface|null
+   * @return \Drupal\node\NodeInterface|null
    *   Book node Entity.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function getBook(string $isbn, bool $create = TRUE): ?EntityInterface {
+  public function getBook(string $isbn, bool $create = TRUE): ?NodeInterface {
     $books = $this->entityTypeManager->getStorage('node')
       ->loadByProperties(['field_isbn' => $isbn]);
     if (!empty($books)) {
@@ -249,7 +255,7 @@ class BooksUtilsService {
   /**
    * Queues book nodes for a Hardcover sync.
    *
-   * @param array $nids
+   * @param array<int, int|string> $nids
    *   Node IDs to queue.
    *
    * @return int

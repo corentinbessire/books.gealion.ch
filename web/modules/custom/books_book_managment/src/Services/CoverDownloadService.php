@@ -94,7 +94,7 @@ class CoverDownloadService {
       return NULL;
     }
 
-    return $file ?? NULL;
+    return $file;
   }
 
   /**

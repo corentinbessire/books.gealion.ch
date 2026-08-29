@@ -96,7 +96,8 @@ class HardcoverBookSyncKernelTest extends KernelTestBase {
     $worker = $this->workerWith($hardcover);
 
     $worker->processItem(['nid' => 1, 'isbn' => '9780000000000', 'only_fill_gaps' => TRUE]);
-    $this->assertTrue(TRUE, 'Processing returned without throwing.');
+    // No exception means the item was consumed rather than requeued.
+    $this->addToAssertionCount(1);
   }
 
 }

@@ -12,8 +12,11 @@ use Drupal\field\Entity\FieldStorageConfig;
  *
  * Hardcover reports series positions as floats (novellas sit at 1.5), which
  * the old integer field could not hold.
+ *
+ * @param array<string, mixed> $sandbox
+ *   The update sandbox.
  */
-function books_book_managment_update_11001(&$sandbox): string {
+function books_book_managment_update_11001(array &$sandbox): string {
   $storage = \Drupal::entityTypeManager()->getStorage('node');
   $nids = $storage->getQuery()
     ->condition('type', 'book')

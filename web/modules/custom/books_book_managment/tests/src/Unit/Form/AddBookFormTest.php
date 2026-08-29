@@ -13,6 +13,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueInterface;
 use Drupal\isbn\IsbnToolsServiceInterface;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -102,7 +103,7 @@ class AddBookFormTest extends UnitTestCase {
       ->with($isbn)
       ->willThrowException(new HardcoverRateLimitException(30));
 
-    $book = $this->createMock(EntityInterface::class);
+    $book = $this->createMock(NodeInterface::class);
     $book->method('id')->willReturn(42);
 
     $this->booksUtilsService->expects($this->once())
@@ -145,7 +146,7 @@ class AddBookFormTest extends UnitTestCase {
       ->with($isbn)
       ->willReturn(NULL);
 
-    $book = $this->createMock(EntityInterface::class);
+    $book = $this->createMock(NodeInterface::class);
     $book->method('id')->willReturn(7);
 
     $this->booksUtilsService->expects($this->once())
@@ -187,7 +188,7 @@ class AddBookFormTest extends UnitTestCase {
       ->with($isbn, $bookData['cover_url'])
       ->willReturn($cover);
 
-    $book = $this->createMock(EntityInterface::class);
+    $book = $this->createMock(NodeInterface::class);
     $book->method('id')->willReturn(99);
 
     $this->booksUtilsService->expects($this->once())

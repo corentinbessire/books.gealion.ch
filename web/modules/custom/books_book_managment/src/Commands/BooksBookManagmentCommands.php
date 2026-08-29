@@ -46,7 +46,7 @@ class BooksBookManagmentCommands extends DrushCommands {
   /**
    * Queue books for a Hardcover sync.
    *
-   * @param array $options
+   * @param array<string, mixed> $options
    *   Command options.
    *
    * @option nid
@@ -61,6 +61,8 @@ class BooksBookManagmentCommands extends DrushCommands {
    *
    * @command books:sync
    * @aliases bs
+   *
+   * @phpstan-param array{nid?: int|string|null, run?: bool} $options
    */
   public function sync(array $options = ['nid' => NULL, 'run' => FALSE]): void {
     $nids = $options['nid'] ? [$options['nid']] : $this->booksUtilsService->getAllBooks();
@@ -112,6 +114,9 @@ class BooksBookManagmentCommands extends DrushCommands {
     $failed = 0;
 
     while ($item = $queue->claimItem()) {
+      if (!is_object($item)) {
+        break;
+      }
       try {
         $worker->processItem($item->data);
         $queue->deleteItem($item);
