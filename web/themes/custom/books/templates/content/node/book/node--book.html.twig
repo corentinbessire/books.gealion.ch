@@ -11,7 +11,10 @@
     <div class="flex-1 space-y-4">
       {% if content.field_serie | render %}
         <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-200 border border-stone-300 rounded-full text-sm text-ink-muted" style="font-family: var(--font-accent);">
-          <span>Book {{ content.field_serie_position }} of</span>
+          {% if node.field_serie_position.value is not empty %}
+            {# Coerce the decimal string ("1.00", "1.50") to a number so trailing zeros drop: 1, 1.5. #}
+            <span>Book {{ node.field_serie_position.value + 0 }} of</span>
+          {% endif %}
           <span class="text-burgundy font-semibold">{{ content.field_serie }}</span>
         </div>
       {% endif %}
