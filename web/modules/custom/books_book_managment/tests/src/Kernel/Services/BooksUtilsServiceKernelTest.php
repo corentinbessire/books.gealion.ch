@@ -316,6 +316,45 @@ class BooksUtilsServiceKernelTest extends KernelTestBase {
   }
 
   /**
+   * Tests that a legitimate zero value is persisted, not dropped.
+   *
+   * @covers ::saveBookData
+   */
+  public function testSaveBookDataPersistsZeroValues(): void {
+    $book = $this->booksUtilsService->saveBookData('9780765326379', [
+      'title' => 'Zeroth',
+      'field_isbn' => '9780765326379',
+      'field_pages' => 0,
+      'field_serie_position' => 0.0,
+    ]);
+
+    $reloaded = $this->reloadBook($book);
+    $this->assertSame('0', (string) $reloaded->get('field_pages')->value);
+    $this->assertSame('0.00', $reloaded->get('field_serie_position')->value);
+  }
+
+  /**
+   * Tests that gap-fill mode does not overwrite a populated value with zero.
+   *
+   * @covers ::saveBookData
+   */
+  public function testGapFillDoesNotOverwritePopulatedFieldWithZero(): void {
+    $this->booksUtilsService->saveBookData('9780765326379', [
+      'title' => 'Oathbringer',
+      'field_isbn' => '9780765326379',
+      'field_serie_position' => 3.0,
+    ]);
+
+    $book = $this->booksUtilsService->saveBookData('9780765326379', [
+      'title' => 'Oathbringer',
+      'field_serie_position' => 0.0,
+    ], TRUE);
+
+    $reloaded = $this->reloadBook($book);
+    $this->assertSame('3.00', $reloaded->get('field_serie_position')->value);
+  }
+
+  /**
    * Reloads a book node from storage.
    *
    * Decimal field values are stored as strings by the database and are

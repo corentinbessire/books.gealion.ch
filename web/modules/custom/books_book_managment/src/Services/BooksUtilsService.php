@@ -58,17 +58,26 @@ class BooksUtilsService {
       'field_serie_position',
     ];
     foreach ($simpleFields as $field) {
-      if (empty($data[$field]) || !$this->shouldWrite($book, $field, $onlyFillGaps)) {
+      if (!array_key_exists($field, $data) || $data[$field] === NULL || $data[$field] === '') {
+        continue;
+      }
+      if (!$this->shouldWrite($book, $field, $onlyFillGaps)) {
         continue;
       }
       $book->set($field, $data[$field]);
     }
 
-    if (!empty($data['field_publisher']) && $this->shouldWrite($book, 'field_publisher', $onlyFillGaps)) {
+    if (
+      isset($data['field_publisher']) && $data['field_publisher'] !== ''
+      && $this->shouldWrite($book, 'field_publisher', $onlyFillGaps)
+    ) {
       $book->set('field_publisher', $this->getTermByName($data['field_publisher'], 'publisher'));
     }
 
-    if (!empty($data['field_serie']) && $this->shouldWrite($book, 'field_serie', $onlyFillGaps)) {
+    if (
+      isset($data['field_serie']) && $data['field_serie'] !== ''
+      && $this->shouldWrite($book, 'field_serie', $onlyFillGaps)
+    ) {
       $book->set('field_serie', $this->getTermByName($data['field_serie'], 'serie'));
     }
 
@@ -78,7 +87,7 @@ class BooksUtilsService {
       'field_moods' => 'mood',
     ];
     foreach ($multiValue as $field => $vid) {
-      if (empty($data[$field]) || !$this->shouldWrite($book, $field, $onlyFillGaps)) {
+      if (empty($data[$field]) || !is_array($data[$field]) || !$this->shouldWrite($book, $field, $onlyFillGaps)) {
         continue;
       }
       $book->set($field, $this->buildTermReferences($data[$field], $vid));
