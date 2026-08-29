@@ -171,6 +171,16 @@ new field plus a migration:
   deletes the old field storage.
 - `decimal` rather than `float` so values are exact and sort predictably.
 
+**Do not regenerate these two config files.** `hook_update_11001` creates
+`field_serie_position` programmatically with hardcoded UUIDs matching
+`config/sync/field.storage.node.field_serie_position.yml` and
+`config/sync/field.field.node.book.field_serie_position.yml`. It has to: on
+production `drush updatedb` runs before `drush config:import`, so the field must
+exist before the import, and `ConfigEntityStorage::updateFromStorageRecord()`
+skips the uuid key on update — a mismatched UUID would produce a config diff
+that `cim` can never converge on. Keep those UUIDs until update 11001 has run
+in every environment.
+
 Consumers to update, all of which currently reference `field_serie_number`:
 
 - `core.entity_form_display.node.book.default`
