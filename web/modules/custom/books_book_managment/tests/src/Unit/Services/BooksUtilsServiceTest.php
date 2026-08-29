@@ -8,7 +8,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -63,13 +62,11 @@ class BooksUtilsServiceTest extends UnitTestCase {
     $this->loggerFactory->method('get')->willReturn($logger);
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
-    $fileSystem = $this->createMock(FileSystemInterface::class);
     $this->queueFactory = $this->createMock(QueueFactory::class);
 
     $this->booksUtilsService = new BooksUtilsService(
       $this->loggerFactory,
       $this->entityTypeManager,
-      $fileSystem,
       $this->queueFactory
     );
   }

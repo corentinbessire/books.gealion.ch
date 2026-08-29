@@ -3,7 +3,6 @@
 namespace Drupal\books_book_managment\Form;
 
 use Drupal\books_book_managment\Services\BooksUtilsService;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -21,13 +20,10 @@ class UpdateBookForm extends FormBase {
    *   Book Utilities Service.
    * @param \Drupal\Core\Queue\QueueFactory $queueFactory
    *   Queue factory.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   Entity type manager.
    */
   public function __construct(
     protected BooksUtilsService $booksUtilsService,
     protected QueueFactory $queueFactory,
-    protected EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -37,7 +33,6 @@ class UpdateBookForm extends FormBase {
     return new static(
       $container->get('books.books_utils'),
       $container->get('queue'),
-      $container->get('entity_type.manager'),
     );
   }
 

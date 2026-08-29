@@ -4,7 +4,6 @@ namespace Drupal\books_book_managment\Services;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 
@@ -20,15 +19,12 @@ class BooksUtilsService {
    *   The logger channel factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
-   *   The file system service.
    * @param \Drupal\Core\Queue\QueueFactory $queueFactory
    *   Queue factory, used to enqueue books for a Hardcover sync.
    */
   public function __construct(
     protected LoggerChannelFactoryInterface $loggerChannelFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
-    protected FileSystemInterface $fileSystem,
     protected QueueFactory $queueFactory,
   ) {}
 
