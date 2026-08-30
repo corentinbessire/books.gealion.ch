@@ -3,6 +3,8 @@
 namespace Drupal\books_activity\Plugin\ExtraField\Display;
 
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\extra_field\Attribute\ExtraFieldDisplay;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -11,16 +13,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Example Extra field Display.
- *
- * @ExtraFieldDisplay(
- *   id = "book_cover",
- *   label = @Translation("Book Cover"),
- *   description = @Translation("Display the cover of the book linked with the
- *   activity."), bundles = {
- *     "node.activity",
- *   }
- * )
  */
+#[ExtraFieldDisplay(
+  id: "book_cover",
+  label: new TranslatableMarkup("Book Cover"),
+  description: new TranslatableMarkup("Display the cover of the book linked with the activity."),
+  bundles: ["node.activity"],
+)]
 class BookCover extends ExtraFieldPlusDisplayBase implements ContainerFactoryPluginInterface {
 
   /**

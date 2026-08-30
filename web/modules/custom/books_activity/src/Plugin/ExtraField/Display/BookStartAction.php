@@ -4,6 +4,8 @@ namespace Drupal\books_activity\Plugin\ExtraField\Display;
 
 use Drupal\books_activity\Services\ActivityStatusService;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\extra_field\Attribute\ExtraFieldDisplay;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -18,16 +20,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * read, Reread when every activity is closed, and nothing at all while one is
  * open. ActivityController::new() enforces the same rule, because hiding a
  * button does not protect the route behind it.
- *
- * @ExtraFieldDisplay(
- *   id = "book_start_action",
- *   label = @Translation("Start reading action"),
- *   description = @Translation("Start reading / Reread button, hidden while
- *   the book is already being read."), bundles = {
- *     "node.book",
- *   }
- * )
  */
+#[ExtraFieldDisplay(
+  id: "book_start_action",
+  label: new TranslatableMarkup("Start reading action"),
+  description: new TranslatableMarkup("Start reading / Reread button, hidden while the book is already being read."),
+  bundles: ["node.book"],
+)]
 class BookStartAction extends ExtraFieldPlusDisplayBase implements ContainerFactoryPluginInterface {
 
   /**
