@@ -99,4 +99,33 @@ class ActivityPresaveTest extends KernelTestBase {
     $this->assertEquals('Original Title', $book->getTitle());
   }
 
+  /**
+   * Tests that an activity bundle without field_book does not fatal on save.
+   *
+   * The hook calls $node->get('field_book') for anything on the activity
+   * bundle. Drupal throws InvalidArgumentException for a field the bundle
+   * does not have, so a site or test where the field is absent cannot save an
+   * activity at all. Not reachable on this site today, where the field is
+   * configured — this guards the hook against a configuration it does not
+   * control.
+   */
+  public function testPresaveToleratesActivityWithoutBookField(): void {
+    FieldConfig::loadByName('node', 'activity', 'field_book')->delete();
+
+    $node = Node::create(['type' => 'activity', 'title' => 'Kept']);
+    $node->save();
+
+    $this->assertSame('Kept', $node->getTitle());
+  }
+
+  /**
+   * Tests that an activity whose book reference is empty keeps its title.
+   */
+  public function testPresaveKeepsTitleWhenBookIsEmpty(): void {
+    $node = Node::create(['type' => 'activity', 'title' => 'No book yet']);
+    $node->save();
+
+    $this->assertSame('No book yet', $node->getTitle());
+  }
+
 }
