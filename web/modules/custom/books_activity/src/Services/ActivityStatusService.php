@@ -26,6 +26,16 @@ class ActivityStatusService {
   public const READING = 'Reading';
 
   /**
+   * The book has never been read; offer to start it.
+   */
+  public const ACTION_START = 'start';
+
+  /**
+   * The book has been read before and is not open; offer to read it again.
+   */
+  public const ACTION_REREAD = 'reread';
+
+  /**
    * Constructs an ActivityStatusService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -82,6 +92,42 @@ class ActivityStatusService {
 
     return $reading !== NULL
       && (int) $activity->get('field_status')->target_id === $reading;
+  }
+
+  /**
+   * Decides which start action a book should offer, if any.
+   *
+   * @param \Drupal\node\NodeInterface $book
+   *   The book node.
+   *
+   * @return string|null
+   *   ACTION_START when the book has no activities, ACTION_REREAD when every
+   *   activity is closed, or NULL while one is still open — a second reading
+   *   activity for the same book would be a duplicate.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function getStartAction(NodeInterface $book): ?string {
+    $storage = $this->entityTypeManager->getStorage('node');
+
+    $ids = $storage->getQuery()
+      ->condition('type', 'activity')
+      ->condition('field_book', $book->id())
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (empty($ids)) {
+      return self::ACTION_START;
+    }
+
+    foreach ($storage->loadMultiple($ids) as $activity) {
+      if ($this->isReading($activity)) {
+        return NULL;
+      }
+    }
+
+    return self::ACTION_REREAD;
   }
 
 }

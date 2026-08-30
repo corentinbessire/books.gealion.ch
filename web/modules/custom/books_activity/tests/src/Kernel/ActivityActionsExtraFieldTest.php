@@ -87,6 +87,18 @@ class ActivityActionsExtraFieldTest extends KernelTestBase {
     ])->save();
 
     FieldStorageConfig::create([
+      'field_name' => 'field_isbn',
+      'entity_type' => 'node',
+      'type' => 'string',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_isbn',
+      'entity_type' => 'node',
+      'bundle' => 'book',
+      'label' => 'ISBN',
+    ])->save();
+
+    FieldStorageConfig::create([
       'field_name' => 'field_status',
       'entity_type' => 'node',
       'type' => 'entity_reference',
@@ -168,6 +180,89 @@ class ActivityActionsExtraFieldTest extends KernelTestBase {
     $activity = $this->activity('Reading');
 
     $this->assertSame([], $this->build($activity, 'activity_actions'));
+  }
+
+  /**
+   * Creates a book with activities in the given statuses.
+   *
+   * @param string[] $statusNames
+   *   Statuses to attach, may be empty.
+   * @param string|null $isbn
+   *   ISBN to give the book, or NULL for none.
+   *
+   * @return \Drupal\node\Entity\Node
+   *   The saved book.
+   */
+  protected function book(array $statusNames = [], ?string $isbn = '9780765326379'): Node {
+    $values = ['type' => 'book', 'title' => 'Oathbringer'];
+    if ($isbn !== NULL) {
+      $values['field_isbn'] = $isbn;
+    }
+    $book = Node::create($values);
+    $book->save();
+
+    foreach ($statusNames as $statusName) {
+      Node::create([
+        'type' => 'activity',
+        'title' => 'Oathbringer',
+        'field_book' => ['target_id' => $book->id()],
+        'field_status' => ['target_id' => $this->status[$statusName]],
+      ])->save();
+    }
+
+    return $book;
+  }
+
+  /**
+   * Tests that an unread book offers the start action.
+   */
+  public function testUnreadBookOffersStart(): void {
+    $this->setUpCurrentUser([], ['create activity content']);
+
+    $build = $this->build($this->book(), 'book_start_action');
+
+    $this->assertSame('book_start_action', $build['#theme']);
+    $this->assertSame('start', $build['#action']);
+    $this->assertStringContainsString('/activity/start/9780765326379', $build['#url']);
+  }
+
+  /**
+   * Tests that a previously finished book offers a reread.
+   */
+  public function testFinishedBookOffersReread(): void {
+    $this->setUpCurrentUser([], ['create activity content']);
+
+    $this->assertSame('reread', $this->build($this->book(['Finished']), 'book_start_action')['#action']);
+    $this->assertSame('reread', $this->build($this->book(['Abandoned']), 'book_start_action')['#action']);
+  }
+
+  /**
+   * Tests that a book currently being read offers nothing.
+   */
+  public function testBookBeingReadOffersNothing(): void {
+    $this->setUpCurrentUser([], ['create activity content']);
+
+    $this->assertSame([], $this->build($this->book(['Reading']), 'book_start_action'));
+  }
+
+  /**
+   * Tests that a user without the permission is offered nothing.
+   */
+  public function testBookOffersNothingWithoutPermission(): void {
+    $this->setUpCurrentUser([], ['access content']);
+
+    $this->assertSame([], $this->build($this->book(), 'book_start_action'));
+  }
+
+  /**
+   * Tests that a book with no ISBN offers nothing.
+   *
+   * The route is keyed by ISBN, so there is nothing to link to.
+   */
+  public function testBookWithoutIsbnOffersNothing(): void {
+    $this->setUpCurrentUser([], ['create activity content']);
+
+    $this->assertSame([], $this->build($this->book([], NULL), 'book_start_action'));
   }
 
 }

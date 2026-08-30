@@ -63,6 +63,7 @@ class ActivityStatusServiceTest extends KernelTestBase {
     $this->setUpCurrentUser(['uid' => 1]);
 
     NodeType::create(['type' => 'activity', 'name' => 'Activity'])->save();
+    NodeType::create(['type' => 'book', 'name' => 'Book'])->save();
     Vocabulary::create(['vid' => 'sta', 'name' => 'Status'])->save();
     foreach (['Reading', 'Finished', 'Abandoned'] as $name) {
       $term = Term::create(['vid' => 'sta', 'name' => $name]);
@@ -161,6 +162,73 @@ class ActivityStatusServiceTest extends KernelTestBase {
 
     $this->assertSame($this->status['Finished'], (string) $service->getStatusId('Finished'));
     $this->assertNull($service->getStatusId('Nonexistent'));
+  }
+
+  /**
+   * Creates a book with activities in the given statuses.
+   *
+   * @param string[] $statusNames
+   *   Statuses of the activities to attach, may be empty.
+   *
+   * @return \Drupal\node\Entity\Node
+   *   The saved book.
+   */
+  protected function bookWithActivities(array $statusNames): Node {
+    $book = Node::create(['type' => 'book', 'title' => 'Dune']);
+    $book->save();
+
+    foreach ($statusNames as $statusName) {
+      Node::create([
+        'type' => 'activity',
+        'title' => 'Dune',
+        'field_book' => ['target_id' => $book->id()],
+        'field_status' => ['target_id' => $this->status[$statusName]],
+      ])->save();
+    }
+
+    return $book;
+  }
+
+  /**
+   * Tests that a book never read offers the start action.
+   *
+   * @covers ::getStartAction
+   */
+  public function testGetStartActionIsStartForUnreadBook(): void {
+    $service = $this->container->get('books_activity.status');
+
+    $this->assertSame('start', $service->getStartAction($this->bookWithActivities([])));
+  }
+
+  /**
+   * Tests that a book whose activities are all closed offers a reread.
+   *
+   * @covers ::getStartAction
+   */
+  public function testGetStartActionIsRereadForClosedActivities(): void {
+    $service = $this->container->get('books_activity.status');
+
+    $this->assertSame('reread', $service->getStartAction($this->bookWithActivities(['Finished'])));
+    $this->assertSame('reread', $service->getStartAction($this->bookWithActivities(['Abandoned'])));
+    $this->assertSame(
+      'reread',
+      $service->getStartAction($this->bookWithActivities(['Finished', 'Abandoned']))
+    );
+  }
+
+  /**
+   * Tests that a book currently being read offers nothing.
+   *
+   * A second reading activity for the same book would be a duplicate, which
+   * is exactly what the route used to allow.
+   *
+   * @covers ::getStartAction
+   */
+  public function testGetStartActionIsNullWhileBookIsBeingRead(): void {
+    $service = $this->container->get('books_activity.status');
+
+    $this->assertNull($service->getStartAction($this->bookWithActivities(['Reading'])));
+    $this->assertNull($service->getStartAction($this->bookWithActivities(['Finished', 'Reading'])));
   }
 
 }

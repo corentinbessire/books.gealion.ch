@@ -25,6 +25,11 @@ targetEntityType: node
 bundle: book
 mode: default
 content:
+  extra_field_book_start_action:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 112
+    region: content
   field_authors:
     type: entity_reference_label
     label: hidden

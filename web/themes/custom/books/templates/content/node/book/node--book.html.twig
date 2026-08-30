@@ -67,6 +67,8 @@
         {% endif %}
       </div>
 
+      {{ content.extra_field_book_start_action }}
+
       {% if content.field_excerpt | render %}
         <div class="prose prose-lg max-w-none text-stone-700 mt-6 pt-6 border-t border-stone-300">
           {{ content.field_excerpt }}
