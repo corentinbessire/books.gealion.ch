@@ -1,0 +1,8 @@
+name: 'Books - Catalog'
+type: module
+description: 'The book domain: storing book nodes, upserting their taxonomy terms, and the ISBN uniqueness rule. Knows nothing about where the data came from.'
+package: Books
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:node
+  - drupal:taxonomy

@@ -76,154 +76,154 @@ parameters:
 			path: web/modules/custom/books_activity/src/Plugin/ExtraField/Display/BookCover.php
 
 		-
-			message: "#^Function books_book_managment_entity_bundle_field_info_alter\\(\\) has no return type specified\\.$#"
+			message: "#^Function books_catalog_entity_bundle_field_info_alter\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/books_book_managment.module
+			path: web/modules/custom/books_catalog/books_catalog.module
 
 		-
-			message: "#^Function books_book_managment_entity_bundle_field_info_alter\\(\\) has parameter \\$bundle with no type specified\\.$#"
+			message: "#^Function books_catalog_entity_bundle_field_info_alter\\(\\) has parameter \\$bundle with no type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/books_book_managment.module
+			path: web/modules/custom/books_catalog/books_catalog.module
 
 		-
-			message: "#^Function books_book_managment_entity_bundle_field_info_alter\\(\\) has parameter \\$fields with no type specified\\.$#"
+			message: "#^Function books_catalog_entity_bundle_field_info_alter\\(\\) has parameter \\$fields with no type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/books_book_managment.module
+			path: web/modules/custom/books_catalog/books_catalog.module
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Commands\\\\BooksBookManagmentCommands\\:\\:updateCover\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Commands\\\\BooksHardcoverCommands\\:\\:updateCover\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Commands/BooksBookManagmentCommands.php
+			path: web/modules/custom/books_hardcover/src/Commands/BooksHardcoverCommands.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:buildForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:buildForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:buildForm\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:buildForm\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:create\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:create\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) has parameter \\$array1 with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) has parameter \\$array1 with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) has parameter \\$array2 with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) has parameter \\$array2 with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:mergeBookData\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:submitForm\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:submitForm\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:submitForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:submitForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:validateForm\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:validateForm\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\AddBookForm\\:\\:validateForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\AddBookForm\\:\\:validateForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/AddBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/AddBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:create\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:create\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:buildForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:buildForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:buildForm\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:buildForm\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:submitForm\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:submitForm\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:submitForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:submitForm\\(\\) has parameter \\$form with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:updateBookProcess\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:updateBookProcess\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:updateBookProcess\\(\\) has parameter \\$context with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:updateBookProcess\\(\\) has parameter \\$context with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has no return type specified\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has no return type specified\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has parameter \\$operations with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has parameter \\$operations with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has parameter \\$results with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_hardcover\\\\Form\\\\UpdateBookForm\\:\\:updateBookFinished\\(\\) has parameter \\$results with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Form/UpdateBookForm.php
+			path: web/modules/custom/books_hardcover/src/Form/UpdateBookForm.php
 
 		-
 			message: "#^Call to an undefined method Drupal\\\\Core\\\\Entity\\\\EntityInterface\\:\\:set\\(\\)\\.$#"
 			count: 7
-			path: web/modules/custom/books_book_managment/src/Services/BooksUtilsService.php
+			path: web/modules/custom/books_catalog/src/Services/BookService.php
 
 		-
 			message: "#^Call to an undefined method Drupal\\\\Core\\\\Entity\\\\EntityInterface\\:\\:setTitle\\(\\)\\.$#"
 			count: 2
-			path: web/modules/custom/books_book_managment/src/Services/BooksUtilsService.php
+			path: web/modules/custom/books_catalog/src/Services/BookService.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Services\\\\BooksUtilsService\\:\\:getBooksMissingCover\\(\\) return type has no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_catalog\\\\Services\\\\BookService\\:\\:getBooksMissingCover\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Services/BooksUtilsService.php
+			path: web/modules/custom/books_catalog/src/Services/BookService.php
 
 		-
-			message: "#^Method Drupal\\\\books_book_managment\\\\Services\\\\BooksUtilsService\\:\\:saveBookData\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			message: "#^Method Drupal\\\\books_catalog\\\\Services\\\\BookService\\:\\:saveBookData\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/src/Services/BooksUtilsService.php
-
-		-
-			message: "#^Trying to mock an undefined method set\\(\\) on class Drupal\\\\Core\\\\Entity\\\\EntityInterface\\.$#"
-			count: 1
-			path: web/modules/custom/books_book_managment/tests/src/Unit/Services/BooksUtilsServiceTest.php
+			path: web/modules/custom/books_catalog/src/Services/BookService.php
 
 		-
 			message: "#^Trying to mock an undefined method set\\(\\) on class Drupal\\\\Core\\\\Entity\\\\EntityInterface\\.$#"
 			count: 1
-			path: web/modules/custom/books_book_managment/tests/src/Unit/Services/CoverDownloadServiceTest.php
+			path: web/modules/custom/books_catalog/tests/src/Unit/Services/BookServiceTest.php
+
+		-
+			message: "#^Trying to mock an undefined method set\\(\\) on class Drupal\\\\Core\\\\Entity\\\\EntityInterface\\.$#"
+			count: 1
+			path: web/modules/custom/books_cover/tests/src/Unit/Services/CoverDownloadServiceTest.php
 
 		-
 			message: "#^Function books_preprocess_html\\(\\) has no return type specified\\.$#"

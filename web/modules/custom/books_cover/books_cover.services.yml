@@ -1,0 +1,8 @@
+services:
+  books_cover.downloader:
+    class: Drupal\books_cover\Services\CoverDownloadService
+    arguments:
+      - '@http_client'
+      - '@logger.factory'
+      - '@entity_type.manager'
+      - '@file.repository'

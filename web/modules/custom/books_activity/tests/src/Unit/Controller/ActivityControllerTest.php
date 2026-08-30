@@ -4,7 +4,7 @@ namespace Drupal\Tests\books_activity\Unit\Controller;
 
 use Drupal\books_activity\Controller\ActivityController;
 use Drupal\books_activity\Services\ActivityStatusService;
-use Drupal\books_book_managment\Services\BooksUtilsService;
+use Drupal\books_catalog\Services\BookService;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -32,9 +32,9 @@ class ActivityControllerTest extends UnitTestCase {
   /**
    * The books utils service mock.
    *
-   * @var \Drupal\books_book_managment\Services\BooksUtilsService|\PHPUnit\Framework\MockObject\MockObject
+   * @var \Drupal\books_catalog\Services\BookService|\PHPUnit\Framework\MockObject\MockObject
    */
-  protected $booksUtilsService;
+  protected $bookService;
 
   /**
    * The ISBN tools service mock.
@@ -71,7 +71,7 @@ class ActivityControllerTest extends UnitTestCase {
     parent::setUp();
 
     $this->messenger = $this->createMock(MessengerInterface::class);
-    $this->booksUtilsService = $this->createMock(BooksUtilsService::class);
+    $this->bookService = $this->createMock(BookService::class);
     $this->isbnToolsService = $this->createMock(IsbnToolsService::class);
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
 
@@ -95,7 +95,7 @@ class ActivityControllerTest extends UnitTestCase {
     $this->controller = new ActivityController(
       $this->entityTypeManager,
       $this->messenger,
-      $this->booksUtilsService,
+      $this->bookService,
       $this->isbnToolsService,
       $requestStack,
       $this->activityStatus

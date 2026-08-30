@@ -2,18 +2,14 @@
 
 /**
  * @file
- * Primary module hooks for Books - Book Managment module.
+ * Retiring shell for Books - Book Management.
+ *
+ * The hooks and services this module used to provide now live in
+ * books_catalog, books_cover and books_hardcover. Only the update-hook history
+ * in the .install file keeps this module installed.
+ *
+ * It deliberately declares no services. An alias to a service in one of the
+ * new modules would break the container rebuild that runs before
+ * config:import during a deploy, because those modules are not installed yet
+ * at that point.
  */
-
-use Drupal\Core\Entity\EntityTypeInterface;
-
-/**
- * Implements hook_entity_bundle_field_info_alter().
- */
-function books_book_managment_entity_bundle_field_info_alter(&$fields, EntityTypeInterface $entity_type, $bundle) {
-  if ($entity_type->id() === 'node' && $bundle === 'book') {
-    if (isset($fields['field_isbn'])) {
-      $fields['field_isbn']->addConstraint('UniqueField');
-    }
-  }
-}

@@ -40,7 +40,7 @@ class ActivityStatusGuardTest extends KernelTestBase {
     'isbn',
     'books_activity',
     'books_activity_test',
-    'books_book_managment',
+    'books_catalog',
   ];
 
   /**
