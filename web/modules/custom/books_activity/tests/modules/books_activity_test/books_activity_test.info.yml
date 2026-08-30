@@ -1,0 +1,7 @@
+name: 'Books - Activity test'
+type: module
+description: 'Provides a stub activities route so controller redirects resolve in kernel tests.'
+package: Testing
+core_version_requirement: ^10 || ^11
+dependencies:
+  - books_activity:books_activity
