@@ -8,11 +8,12 @@ dependencies:
     - field.field.node.book.field_excerpt
     - field.field.node.book.field_genres
     - field.field.node.book.field_isbn
+    - field.field.node.book.field_moods
     - field.field.node.book.field_pages
     - field.field.node.book.field_publisher
     - field.field.node.book.field_release
     - field.field.node.book.field_serie
-    - field.field.node.book.field_serie_number
+    - field.field.node.book.field_serie_position
     - node.type.book
   module:
     - datetime
@@ -72,6 +73,16 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_moods:
+    type: entity_reference_autocomplete_tags
+    weight: 60
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
   field_pages:
     type: number
     weight: 128
@@ -105,7 +116,7 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-  field_serie_number:
+  field_serie_position:
     type: number
     weight: 125
     region: content

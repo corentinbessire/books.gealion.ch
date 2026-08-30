@@ -4,10 +4,12 @@ namespace Drupal\books_book_managment\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\books_book_managment\Exception\HardcoverRateLimitException;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\books_book_managment\Services\CoverDownloadService;
-use Drupal\books_book_managment\Services\GoogleBooksService;
-use Drupal\books_book_managment\Services\OpenLibraryService;
+use Drupal\books_book_managment\Services\HardcoverService;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,21 +23,21 @@ class AddBookForm extends FormBase {
    *
    * @param \Drupal\isbn\IsbnToolsServiceInterface $isbnToolsService
    *   ISBN Tools Service.
-   * @param \Drupal\books_book_managment\Services\OpenLibraryService $openLibraryService
-   *   Open Library Service.
-   * @param \Drupal\books_book_managment\Services\GoogleBooksService $googleBooksService
-   *   Google Book Service.
+   * @param \Drupal\books_book_managment\Services\HardcoverService $hardcoverService
+   *   Hardcover data service.
    * @param \Drupal\books_book_managment\Services\CoverDownloadService $coverDownloadService
    *   Cover Downloader Service.
    * @param \Drupal\books_book_managment\Services\BooksUtilsService $booksUtilsService
    *   Book Utilities Service.
+   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
+   *   Queue factory, used when the API is rate limited.
    */
   public function __construct(
     protected IsbnToolsServiceInterface $isbnToolsService,
-    protected OpenLibraryService $openLibraryService,
-    protected GoogleBooksService $googleBooksService,
+    protected HardcoverService $hardcoverService,
     protected CoverDownloadService $coverDownloadService,
     protected BooksUtilsService $booksUtilsService,
+    protected QueueFactory $queueFactory,
   ) {}
 
   /**
@@ -44,10 +46,10 @@ class AddBookForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('isbn.isbn_service'),
-      $container->get('books.open_library'),
-      $container->get('books.google_books'),
+      $container->get('books.hardcover'),
       $container->get('books.cover_download'),
       $container->get('books.books_utils'),
+      $container->get('queue'),
     );
   }
 
@@ -148,49 +150,82 @@ class AddBookForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $isbn = $form_state->getValue('isbn');
-    $olBookData = $this->openLibraryService
-      ->getFormattedBookData($isbn) ?? [];
 
-    $gbBookData = $this->googleBooksService
-      ->getFormattedBookData($isbn) ?? [];
-
-    $bookData = $this->mergeBookData($gbBookData, $olBookData);
-
-    if ($bookData) {
-      $cover = $this->coverDownloadService
-        ->downloadBookCover($isbn);
-      if ($cover) {
-        $bookData['field_cover'] = $cover;
-      }
-      $book = $this->booksUtilsService
-        ->saveBookData($isbn, $bookData);
-
-      $this->messenger()->addStatus($this->t('Book has been created'));
-      $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
+    try {
+      $bookData = $this->hardcoverService->getFormattedBookData($isbn);
     }
-    else {
-      $this->messenger()->addWarning($this->t('No data found for given ISBN.'));
+    catch (HardcoverRateLimitException) {
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover is rate limited right now. The book was saved and will be filled in automatically.'),
+        TRUE
+      );
+      return;
     }
+    catch (\Exception) {
+      // Anything else — a dropped connection, a malformed response — must not
+      // white-screen the form: a scanned barcode is never allowed to be lost.
+      // The book is stubbed out and the queue fills it in later.
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover could not be reached. The book was saved and will be filled in automatically.'),
+        TRUE
+      );
+      return;
+    }
+
+    if ($bookData === NULL) {
+      $this->saveStub(
+        $isbn,
+        $form_state,
+        $this->t('Hardcover has no data for this ISBN. The book was created — please fill in the details.'),
+        FALSE
+      );
+      return;
+    }
+
+    $cover = $this->coverDownloadService->downloadBookCover($isbn, $bookData['cover_url'] ?? NULL);
+    if ($cover) {
+      $bookData['field_cover'] = $cover;
+    }
+
+    $book = $this->booksUtilsService->saveBookData($isbn, $bookData);
+    $this->messenger()->addStatus($this->t('Book has been created'));
+    $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
   }
 
   /**
-   * Merge Book Data of multiple Source.
+   * Saves a book holding nothing but its ISBN and redirects to it.
    *
-   * @param array $array1
-   *   Data From Source 1.
-   * @param array $array2
-   *   Data From Source 2.
+   * Always gap-filling: getBook() resolves an existing node by its stored
+   * ISBN, so rescanning a book already in the library must not overwrite its
+   * title with the bare barcode.
    *
-   * @return array
-   *   merged Data.
+   * @param string $isbn
+   *   The scanned ISBN.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state, redirected to the saved node.
+   * @param \Drupal\Core\StringTranslation\TranslatableMarkup $message
+   *   Warning shown to the user.
+   * @param bool $queue
+   *   Whether to queue a Hardcover sync, which only makes sense when the
+   *   lookup failed rather than when Hardcover simply has no record.
    */
-  protected function mergeBookData(array $array1, array $array2): array {
-    $keys = array_unique(array_merge(array_keys($array1), array_keys($array2)));
-    $books_data = [];
-    foreach ($keys as $key) {
-      $books_data[$key] = $array1[$key] ?? $array2[$key];
+  protected function saveStub(string $isbn, FormStateInterface $form_state, TranslatableMarkup $message, bool $queue): void {
+    $book = $this->booksUtilsService->saveBookData($isbn, ['field_isbn' => $isbn], TRUE);
+
+    if ($queue) {
+      $this->queueFactory->get('hardcover_book_sync')->createItem([
+        'nid' => $book->id(),
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
     }
-    return $books_data;
+
+    $this->messenger()->addWarning($message);
+    $form_state->setRedirect('entity.node.canonical', ['node' => $book->id()]);
   }
 
 }

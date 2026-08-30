@@ -12,7 +12,7 @@ dependencies:
     - field.storage.node.field_publisher
     - field.storage.node.field_release
     - field.storage.node.field_serie
-    - field.storage.node.field_serie_number
+    - field.storage.node.field_serie_position
     - image.style.media_library
     - node.type.book
     - taxonomy.vocabulary.author
@@ -339,10 +339,10 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
-        field_serie_number:
-          id: field_serie_number
-          table: node__field_serie_number
-          field: field_serie_number
+        field_serie_position:
+          id: field_serie_position
+          table: node__field_serie_position
+          field: field_serie_position
           relationship: none
           group_type: group
           admin_label: ''
@@ -757,10 +757,10 @@ display:
             label: ''
             field_identifier: field_serie_target_id
           exposed: false
-        field_serie_number_value:
-          id: field_serie_number_value
-          table: node__field_serie_number
-          field: field_serie_number_value
+        field_serie_position_value:
+          id: field_serie_position_value
+          table: node__field_serie_position
+          field: field_serie_position_value
           relationship: none
           group_type: group
           admin_label: ''
@@ -768,7 +768,7 @@ display:
           order: ASC
           expose:
             label: ''
-            field_identifier: field_serie_number_value
+            field_identifier: field_serie_position_value
           exposed: false
       arguments: {  }
       filters:
@@ -949,7 +949,7 @@ display:
             field_isbn: field_isbn
             field_genres: field_genres
             field_serie: field_serie
-            field_serie_number: field_serie_number
+            field_serie_position: field_serie_position
             field_genres_1: field_genres_1
             field_pages: field_pages
             field_publisher: field_publisher
@@ -995,7 +995,7 @@ display:
               separator: ''
               empty_column: false
               responsive: ''
-            field_serie_number:
+            field_serie_position:
               sortable: true
               default_sort_order: asc
               align: ''
@@ -1073,7 +1073,7 @@ display:
         - 'config:field.storage.node.field_publisher'
         - 'config:field.storage.node.field_release'
         - 'config:field.storage.node.field_serie'
-        - 'config:field.storage.node.field_serie_number'
+        - 'config:field.storage.node.field_serie_position'
   page_1:
     id: page_1
     display_title: Page
@@ -1233,7 +1233,7 @@ display:
         - 'config:field.storage.node.field_publisher'
         - 'config:field.storage.node.field_release'
         - 'config:field.storage.node.field_serie'
-        - 'config:field.storage.node.field_serie_number'
+        - 'config:field.storage.node.field_serie_position'
   page_2:
     id: page_2
     display_title: Page
@@ -1269,4 +1269,4 @@ display:
         - 'config:field.storage.node.field_publisher'
         - 'config:field.storage.node.field_release'
         - 'config:field.storage.node.field_serie'
-        - 'config:field.storage.node.field_serie_number'
+        - 'config:field.storage.node.field_serie_position'

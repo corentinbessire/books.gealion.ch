@@ -10,6 +10,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 
@@ -36,6 +38,13 @@ class BooksUtilsServiceTest extends UnitTestCase {
   protected $entityTypeManager;
 
   /**
+   * The queue factory mock.
+   *
+   * @var \Drupal\Core\Queue\QueueFactory|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $queueFactory;
+
+  /**
    * The service under test.
    *
    * @var \Drupal\books_book_managment\Services\BooksUtilsService
@@ -53,10 +62,12 @@ class BooksUtilsServiceTest extends UnitTestCase {
     $this->loggerFactory->method('get')->willReturn($logger);
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $this->queueFactory = $this->createMock(QueueFactory::class);
 
     $this->booksUtilsService = new BooksUtilsService(
       $this->loggerFactory,
-      $this->entityTypeManager
+      $this->entityTypeManager,
+      $this->queueFactory
     );
   }
 
@@ -248,6 +259,82 @@ class BooksUtilsServiceTest extends UnitTestCase {
 
     $result = $this->booksUtilsService->getBooksMissingCover();
     $this->assertEmpty($result);
+  }
+
+  /**
+   * Tests queueBooksForSync() enqueues one item per book with an ISBN.
+   *
+   * @covers ::queueBooksForSync
+   */
+  public function testQueueBooksForSyncSkipsBooksWithoutIsbn(): void {
+    $withIsbn = $this->createMock(NodeInterface::class);
+    $withIsbn->method('id')->willReturn(1);
+    $withIsbn->method('bundle')->willReturn('book');
+    $isbnField = (object) ['value' => '9780765326379'];
+    $withIsbn->method('get')->with('field_isbn')->willReturn($isbnField);
+
+    $withoutIsbn = $this->createMock(NodeInterface::class);
+    $withoutIsbn->method('id')->willReturn(2);
+    $withoutIsbn->method('bundle')->willReturn('book');
+    $emptyIsbnField = (object) ['value' => ''];
+    $withoutIsbn->method('get')->with('field_isbn')->willReturn($emptyIsbnField);
+
+    $storage = $this->createMock(EntityStorageInterface::class);
+    $storage->expects($this->once())
+      ->method('loadMultiple')
+      ->with([1, 2])
+      ->willReturn([$withIsbn, $withoutIsbn]);
+
+    $this->entityTypeManager->expects($this->any())
+      ->method('getStorage')
+      ->with('node')
+      ->willReturn($storage);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with([
+        'nid' => 1,
+        'isbn' => '9780765326379',
+        'only_fill_gaps' => TRUE,
+      ]);
+
+    $this->queueFactory->expects($this->once())
+      ->method('get')
+      ->with('hardcover_book_sync')
+      ->willReturn($queue);
+
+    $result = $this->booksUtilsService->queueBooksForSync([1, 2]);
+    $this->assertSame(1, $result);
+  }
+
+  /**
+   * Tests that a node which is not a book is skipped rather than fatal.
+   *
+   * `books:sync --nid=` passes whatever id it is handed straight through, and
+   * asking a non-book node for field_isbn throws InvalidArgumentException.
+   *
+   * @covers ::queueBooksForSync
+   */
+  public function testQueueBooksForSyncSkipsNonBookNodes(): void {
+    $article = $this->createMock(NodeInterface::class);
+    $article->method('id')->willReturn(3);
+    $article->method('bundle')->willReturn('article');
+    $article->expects($this->never())->method('get');
+
+    $storage = $this->createMock(EntityStorageInterface::class);
+    $storage->method('loadMultiple')->with([3])->willReturn([$article]);
+
+    $this->entityTypeManager->expects($this->any())
+      ->method('getStorage')
+      ->with('node')
+      ->willReturn($storage);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->never())->method('createItem');
+    $this->queueFactory->method('get')->with('hardcover_book_sync')->willReturn($queue);
+
+    $this->assertSame(0, $this->booksUtilsService->queueBooksForSync([3]));
   }
 
 }

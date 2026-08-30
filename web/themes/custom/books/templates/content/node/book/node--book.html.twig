@@ -11,7 +11,10 @@
     <div class="flex-1 space-y-4">
       {% if content.field_serie | render %}
         <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-200 border border-stone-300 rounded-full text-sm text-ink-muted" style="font-family: var(--font-accent);">
-          <span>Book {{ content.field_serie_number }} of</span>
+          {% if node.field_serie_position.value is not empty %}
+            {# Coerce the decimal string ("1.00", "1.50") to a number so trailing zeros drop: 1, 1.5. #}
+            <span>Book {{ node.field_serie_position.value + 0 }} of</span>
+          {% endif %}
           <span class="text-burgundy font-semibold">{{ content.field_serie }}</span>
         </div>
       {% endif %}
@@ -51,9 +54,15 @@
           </div>
         {% endif %}
         {% if content.field_genres | render %}
-          <div class="flex justify-between py-2 text-[0.9375rem]">
+          <div class="flex justify-between py-2 border-b border-dotted border-stone-300 text-[0.9375rem]">
             <span class="text-ink-muted uppercase text-xs tracking-wider" style="font-family: var(--font-accent);">Genres</span>
             <span class="text-ink font-medium">{{ content.field_genres }}</span>
+          </div>
+        {% endif %}
+        {% if content.field_moods | render %}
+          <div class="flex justify-between py-2 text-[0.9375rem]">
+            <span class="text-ink-muted uppercase text-xs tracking-wider" style="font-family: var(--font-accent);">Moods</span>
+            <span class="text-ink font-medium">{{ content.field_moods }}</span>
           </div>
         {% endif %}
       </div>

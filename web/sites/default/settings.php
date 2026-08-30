@@ -36,6 +36,9 @@ $settings['entity_update_batch_size'] = 50;
 $settings['entity_update_backup'] = TRUE;
 $settings['migrate_node_migrate_type_classic'] = FALSE;
 
+// API keys — override in settings.local.php or via environment variables.
+// Without a token every Hardcover lookup is a silent no-op.
+$settings['hardcover_api_token'] = getenv('HARDCOVER_API_TOKEN') ?: '';
 
 // Automatically generated include for settings managed by ddev.
 $ddev_settings = dirname(__FILE__) . '/settings.ddev.php';

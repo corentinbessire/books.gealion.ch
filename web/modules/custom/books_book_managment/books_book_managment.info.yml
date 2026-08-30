@@ -8,3 +8,4 @@ dependencies:
   - drupal:taxonomy
   - drupal:media
   - drupal:file
+  - drupal:isbn

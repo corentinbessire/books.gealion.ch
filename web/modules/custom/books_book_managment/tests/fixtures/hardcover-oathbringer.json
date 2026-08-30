@@ -1,0 +1,380 @@
+{
+    "data": {
+        "editions": [
+            {
+                "title": "Oathbringer",
+                "pages": 1243,
+                "release_date": "2017-11-14",
+                "isbn_13": "9780765326379",
+                "publisher": {
+                    "name": "Tor Books"
+                },
+                "image": {
+                    "url": "https://assets.hardcover.app/edition/30455612/1deeb21c2576843fe4556815fea2eb784e406908.jpeg"
+                },
+                "contributions": [
+                    {
+                        "author": {
+                            "name": "Brandon Sanderson"
+                        }
+                    }
+                ],
+                "book": {
+                    "title": "Oathbringer",
+                    "description": "In Oathbringer, the third volume of the New York Times bestselling Stormlight Archive, humanity faces a new Desolation with the return of the Voidbringers, a foe with numbers as great as their thirst for vengeance.\n\nDalinar Kholin's Alethi armies won a fleeting victory at a terrible cost: The enemy Parshendi summoned the violent Everstorm, which now sweeps the world with destruction, and in its passing awakens the once peaceful and subservient parshmen to the horror of their millennia-long enslavement by humans. While on a desperate flight to warn his family of the threat, Kaladin Stormblessed must come to grips with the fact that the newly kindled anger of the parshmen may be wholly justified.\n\nNestled in the mountains high above the storms, in the tower city of Urithiru, Shallan Davar investigates the wonders of the ancient stronghold of the Knights Radiant and unearths dark secrets lurking in its depths. And Dalinar realizes that his holy mission to unite his homeland of Alethkar was too narrow in scope. Unless all the nations of Roshar can put aside Dalinar's blood-soaked past and stand together--and unless Dalinar himself can confront that past--even the restoration of the Knights Radiant will not prevent the end of civilization.",
+                    "cached_tags": {
+                        "Tag": [
+                            {
+                                "tag": "Strong Character Development",
+                                "count": 71,
+                                "tagSlug": "strong-character-development",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Loveable Characters",
+                                "count": 68,
+                                "tagSlug": "loveable-characters",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Diverse Characters",
+                                "count": 64,
+                                "tagSlug": "diverse-characters",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "A mix driven",
+                                "count": 52,
+                                "tagSlug": "a-mix-driven",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Character driven",
+                                "count": 9,
+                                "tagSlug": "character-driven-93bc26e1-5a51-45d4-854b-c94b6a16141a",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Plot driven",
+                                "count": 8,
+                                "tagSlug": "plot-driven",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Not Diverse Characters",
+                                "count": 5,
+                                "tagSlug": "not-diverse-characters",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Unloveable Characters",
+                                "count": 4,
+                                "tagSlug": "unloveable-characters",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "fantasy",
+                                "count": 3,
+                                "tagSlug": "fantasy-706cd3bf-bf58-4a87-9f4e-0e6efff6a30f",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "fiction",
+                                "count": 3,
+                                "tagSlug": "fiction-ca96607a-64dd-43a9-9ba7-beb93428043e",
+                                "category": "Tag",
+                                "categorySlug": "tag",
+                                "spoilerRatio": 0.0
+                            }
+                        ],
+                        "Mood": [
+                            {
+                                "tag": "Adventurous",
+                                "count": 80,
+                                "tagSlug": "adventurous",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "emotional",
+                                "count": 58,
+                                "tagSlug": "emotional",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "tense",
+                                "count": 53,
+                                "tagSlug": "tense",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "inspiring",
+                                "count": 34,
+                                "tagSlug": "inspiring",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "dark",
+                                "count": 32,
+                                "tagSlug": "dark",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "mysterious",
+                                "count": 32,
+                                "tagSlug": "mysterious",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "hopeful",
+                                "count": 23,
+                                "tagSlug": "hopeful",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "reflective",
+                                "count": 22,
+                                "tagSlug": "reflective",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "challenging",
+                                "count": 21,
+                                "tagSlug": "challenging",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "funny",
+                                "count": 18,
+                                "tagSlug": "funny",
+                                "category": "Mood",
+                                "categorySlug": "mood",
+                                "spoilerRatio": 0.0
+                            }
+                        ],
+                        "Genre": [
+                            {
+                                "tag": "Fantasy",
+                                "count": 13,
+                                "tagSlug": "fantasy",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Science Fiction & Fantasy",
+                                "count": 3,
+                                "tagSlug": "science-fiction-fantasy-4c14c349-8d52-4893-aaf0-34f7e33bf275",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Fiction",
+                                "count": 2,
+                                "tagSlug": "fiction",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "War",
+                                "count": 1,
+                                "tagSlug": "war",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Fiction / Fantasy / Action & Adventure",
+                                "count": 1,
+                                "tagSlug": "fiction-fantasy-action-adventure",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Fiction / Fantasy / Epic",
+                                "count": 1,
+                                "tagSlug": "fiction-fantasy-epic",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Fiction / Fantasy / Military",
+                                "count": 1,
+                                "tagSlug": "fiction-fantasy-military",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Young Adult",
+                                "count": 1,
+                                "tagSlug": "young-adult",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Epic; Fantasy; Action & Adventure; Historical",
+                                "count": 1,
+                                "tagSlug": "epic-fantasy-action-and-adventure-historical",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Adventure",
+                                "count": 1,
+                                "tagSlug": "adventure",
+                                "category": "Genre",
+                                "categorySlug": "genre",
+                                "spoilerRatio": 0.0
+                            }
+                        ],
+                        "Content Warning": [
+                            {
+                                "tag": "Gore",
+                                "count": 1,
+                                "tagSlug": "gore",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Drug abuse",
+                                "count": 1,
+                                "tagSlug": "drug-abuse",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Drug use",
+                                "count": 1,
+                                "tagSlug": "drug-use",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Slavery",
+                                "count": 1,
+                                "tagSlug": "slavery",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "suicidal thoughts",
+                                "count": 1,
+                                "tagSlug": "suicidal-thoughts",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Torture",
+                                "count": 1,
+                                "tagSlug": "torture",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Violence",
+                                "count": 1,
+                                "tagSlug": "violence",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Religious Bigotry",
+                                "count": 1,
+                                "tagSlug": "religious-bigotry",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "Suicide attempt",
+                                "count": 1,
+                                "tagSlug": "suicide-attempt",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            },
+                            {
+                                "tag": "War",
+                                "count": 1,
+                                "tagSlug": "war",
+                                "category": "Content Warning",
+                                "categorySlug": "content-warning",
+                                "spoilerRatio": 0.0
+                            }
+                        ]
+                    },
+                    "default_cover_edition": {
+                        "image": {
+                            "url": "https://assets.hardcover.app/edition/30455612/1deeb21c2576843fe4556815fea2eb784e406908.jpeg"
+                        }
+                    },
+                    "book_series": [
+                        {
+                            "position": 3,
+                            "featured": true,
+                            "series": {
+                                "name": "The Stormlight Archive"
+                            }
+                        },
+                        {
+                            "position": 21,
+                            "featured": false,
+                            "series": {
+                                "name": "The Cosmere"
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}

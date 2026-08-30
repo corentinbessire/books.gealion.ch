@@ -2,13 +2,21 @@
 
 namespace Drupal\Tests\books_book_managment\Unit\Form;
 
+use Drupal\books_book_managment\Exception\HardcoverRateLimitException;
 use Drupal\books_book_managment\Form\AddBookForm;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\books_book_managment\Services\CoverDownloadService;
-use Drupal\books_book_managment\Services\GoogleBooksService;
-use Drupal\books_book_managment\Services\OpenLibraryService;
+use Drupal\books_book_managment\Services\HardcoverService;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
 use Drupal\isbn\IsbnToolsServiceInterface;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request;
 
 /**
  * Unit tests for AddBookForm.
@@ -26,84 +34,54 @@ class AddBookFormTest extends UnitTestCase {
   protected $form;
 
   /**
+   * The Hardcover service mock.
+   *
+   * @var \Drupal\books_book_managment\Services\HardcoverService|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $hardcoverService;
+
+  /**
+   * The cover download service mock.
+   *
+   * @var \Drupal\books_book_managment\Services\CoverDownloadService|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $coverDownloadService;
+
+  /**
+   * The books utils service mock.
+   *
+   * @var \Drupal\books_book_managment\Services\BooksUtilsService|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $booksUtilsService;
+
+  /**
+   * The queue factory mock.
+   *
+   * @var \Drupal\Core\Queue\QueueFactory|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $queueFactory;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
 
     $isbnService = $this->createMock(IsbnToolsServiceInterface::class);
-    $openLibrary = $this->createMock(OpenLibraryService::class);
-    $googleBooks = $this->createMock(GoogleBooksService::class);
-    $coverDownload = $this->createMock(CoverDownloadService::class);
-    $booksUtils = $this->createMock(BooksUtilsService::class);
+    $this->hardcoverService = $this->createMock(HardcoverService::class);
+    $this->coverDownloadService = $this->createMock(CoverDownloadService::class);
+    $this->booksUtilsService = $this->createMock(BooksUtilsService::class);
+    $this->queueFactory = $this->createMock(QueueFactory::class);
 
     $this->form = new AddBookForm(
       $isbnService,
-      $openLibrary,
-      $googleBooks,
-      $coverDownload,
-      $booksUtils
+      $this->hardcoverService,
+      $this->coverDownloadService,
+      $this->booksUtilsService,
+      $this->queueFactory
     );
-  }
-
-  /**
-   * Tests mergeBookData() gives priority to first array.
-   *
-   * @covers ::mergeBookData
-   */
-  public function testMergeBookDataPriority(): void {
-    $method = new \ReflectionMethod(AddBookForm::class, 'mergeBookData');
-
-    $google = [
-      'title' => 'Google Title',
-      'field_pages' => 200,
-      'field_publisher' => 'Google Publisher',
-    ];
-    $openLibrary = [
-      'title' => 'OpenLibrary Title',
-      'field_pages' => 210,
-      'field_authors' => ['Author A'],
-    ];
-
-    $result = $method->invoke($this->form, $google, $openLibrary);
-
-    // Google values take priority.
-    $this->assertEquals('Google Title', $result['title']);
-    $this->assertEquals(200, $result['field_pages']);
-    $this->assertEquals('Google Publisher', $result['field_publisher']);
-    // OpenLibrary fills missing fields.
-    $this->assertEquals(['Author A'], $result['field_authors']);
-  }
-
-  /**
-   * Tests mergeBookData() with empty first array.
-   *
-   * @covers ::mergeBookData
-   */
-  public function testMergeBookDataEmptyFirst(): void {
-    $method = new \ReflectionMethod(AddBookForm::class, 'mergeBookData');
-
-    $openLibrary = [
-      'title' => 'OL Title',
-      'field_isbn' => '9780000000000',
-    ];
-
-    $result = $method->invoke($this->form, [], $openLibrary);
-
-    $this->assertEquals('OL Title', $result['title']);
-    $this->assertEquals('9780000000000', $result['field_isbn']);
-  }
-
-  /**
-   * Tests mergeBookData() with both arrays empty.
-   *
-   * @covers ::mergeBookData
-   */
-  public function testMergeBookDataBothEmpty(): void {
-    $method = new \ReflectionMethod(AddBookForm::class, 'mergeBookData');
-
-    $result = $method->invoke($this->form, [], []);
-    $this->assertEmpty($result);
+    $this->form->setStringTranslation($this->getStringTranslationStub());
+    $this->form->setMessenger($this->createMock(MessengerInterface::class));
   }
 
   /**
@@ -113,6 +91,171 @@ class AddBookFormTest extends UnitTestCase {
    */
   public function testGetFormId(): void {
     $this->assertEquals('add_book_form', $this->form->getFormId());
+  }
+
+  /**
+   * Tests that a rate limit still saves a stub and queues a sync.
+   *
+   * @covers ::submitForm
+   */
+  public function testSubmitFormQueuesSyncOnRateLimit(): void {
+    $isbn = '9780765326379';
+
+    $this->hardcoverService->method('getFormattedBookData')
+      ->with($isbn)
+      ->willThrowException(new HardcoverRateLimitException(30));
+
+    $book = $this->createMock(NodeInterface::class);
+    $book->method('id')->willReturn(42);
+
+    $this->booksUtilsService->expects($this->once())
+      ->method('saveBookData')
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
+      ->willReturn($book);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with([
+        'nid' => 42,
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+    $this->queueFactory->expects($this->once())
+      ->method('get')
+      ->with('hardcover_book_sync')
+      ->willReturn($queue);
+
+    $form = [];
+    $formState = $this->createMock(FormStateInterface::class);
+    $formState->method('getValue')->with('isbn')->willReturn($isbn);
+    $formState->expects($this->once())
+      ->method('setRedirect')
+      ->with('entity.node.canonical', ['node' => 42]);
+
+    $this->form->submitForm($form, $formState);
+  }
+
+  /**
+   * Tests that a connection failure still saves a stub and queues a sync.
+   *
+   * A ConnectException is not a RequestException, so it used to travel all the
+   * way out of submitForm() and white-screen the page, losing the barcode the
+   * user had just scanned.
+   *
+   * @covers ::submitForm
+   */
+  public function testSubmitFormQueuesSyncOnConnectionFailure(): void {
+    $isbn = '9780765326379';
+
+    $this->hardcoverService->method('getFormattedBookData')
+      ->with($isbn)
+      ->willThrowException(new ConnectException(
+        'cURL error 6: Could not resolve host: api.hardcover.app',
+        new Request('POST', HardcoverService::API_ENDPOINT)
+      ));
+
+    $book = $this->createMock(NodeInterface::class);
+    $book->method('id')->willReturn(11);
+
+    $this->booksUtilsService->expects($this->once())
+      ->method('saveBookData')
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
+      ->willReturn($book);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with([
+        'nid' => 11,
+        'isbn' => $isbn,
+        'only_fill_gaps' => TRUE,
+      ]);
+    $this->queueFactory->expects($this->once())
+      ->method('get')
+      ->with('hardcover_book_sync')
+      ->willReturn($queue);
+
+    $form = [];
+    $formState = $this->createMock(FormStateInterface::class);
+    $formState->method('getValue')->with('isbn')->willReturn($isbn);
+    $formState->expects($this->once())
+      ->method('setRedirect')
+      ->with('entity.node.canonical', ['node' => 11]);
+
+    $this->form->submitForm($form, $formState);
+  }
+
+  /**
+   * Tests that an ISBN Hardcover has no data for still creates a stub node.
+   *
+   * @covers ::submitForm
+   */
+  public function testSubmitFormCreatesStubWhenNoData(): void {
+    $isbn = '9780000000000';
+
+    $this->hardcoverService->method('getFormattedBookData')
+      ->with($isbn)
+      ->willReturn(NULL);
+
+    $book = $this->createMock(NodeInterface::class);
+    $book->method('id')->willReturn(7);
+
+    $this->booksUtilsService->expects($this->once())
+      ->method('saveBookData')
+      ->with($isbn, ['field_isbn' => $isbn], TRUE)
+      ->willReturn($book);
+
+    $this->queueFactory->expects($this->never())->method('get');
+
+    $form = [];
+    $formState = $this->createMock(FormStateInterface::class);
+    $formState->method('getValue')->with('isbn')->willReturn($isbn);
+    $formState->expects($this->once())
+      ->method('setRedirect')
+      ->with('entity.node.canonical', ['node' => 7]);
+
+    $this->form->submitForm($form, $formState);
+  }
+
+  /**
+   * Tests that a successful lookup downloads the cover and saves the book.
+   *
+   * @covers ::submitForm
+   */
+  public function testSubmitFormSavesFormattedDataOnSuccess(): void {
+    $isbn = '9780765326386';
+    $bookData = [
+      'title' => 'Edgedancer',
+      'cover_url' => 'https://example.com/cover.jpg',
+    ];
+
+    $this->hardcoverService->method('getFormattedBookData')
+      ->with($isbn)
+      ->willReturn($bookData);
+
+    $cover = $this->createMock(EntityInterface::class);
+    $this->coverDownloadService->expects($this->once())
+      ->method('downloadBookCover')
+      ->with($isbn, $bookData['cover_url'])
+      ->willReturn($cover);
+
+    $book = $this->createMock(NodeInterface::class);
+    $book->method('id')->willReturn(99);
+
+    $this->booksUtilsService->expects($this->once())
+      ->method('saveBookData')
+      ->with($isbn, $bookData + ['field_cover' => $cover])
+      ->willReturn($book);
+
+    $form = [];
+    $formState = $this->createMock(FormStateInterface::class);
+    $formState->method('getValue')->with('isbn')->willReturn($isbn);
+    $formState->expects($this->once())
+      ->method('setRedirect')
+      ->with('entity.node.canonical', ['node' => 99]);
+
+    $this->form->submitForm($form, $formState);
   }
 
 }

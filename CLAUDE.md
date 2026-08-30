@@ -4,6 +4,19 @@
 
 This project uses **DDEV** for local development.
 
+## Environment Configuration
+
+The Hardcover GraphQL API needs a token. `web/sites/default/settings.php` reads
+it from the `HARDCOVER_API_TOKEN` environment variable:
+
+```php
+$settings['hardcover_api_token'] = getenv('HARDCOVER_API_TOKEN') ?: '';
+```
+
+Override it in `web/sites/default/settings.local.php` (git-ignored) or export
+the variable. Without a token every lookup logs a warning and returns no data,
+so a book sync appears to run and changes nothing. Never commit the token.
+
 ## Custom DDEV Commands
 
 ### Drush

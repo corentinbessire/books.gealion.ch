@@ -1,21 +1,18 @@
 services:
-  books.google_books:
-    class: Drupal\books_book_managment\Services\GoogleBooksService
+  books.hardcover:
+    class: Drupal\books_book_managment\Services\HardcoverService
     arguments:
       - '@http_client'
       - '@logger.factory'
       - '@settings'
-  books.open_library:
-    class: Drupal\books_book_managment\Services\OpenLibraryService
-    arguments:
-        - '@http_client'
-        - '@logger.factory'
+      - '@isbn.isbn_service'
+      - '@datetime.time'
   books.books_utils:
     class: Drupal\books_book_managment\Services\BooksUtilsService
     arguments:
       - '@logger.factory'
       - '@entity_type.manager'
-      - '@file_system'
+      - '@queue'
   books.cover_download:
     class: Drupal\books_book_managment\Services\CoverDownloadService
     arguments:

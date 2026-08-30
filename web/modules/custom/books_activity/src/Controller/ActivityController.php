@@ -61,7 +61,7 @@ class ActivityController extends ControllerBase {
       if ($book = $this->booksUtilsService->getBook($isbn)) {
         $values = [
           'type' => 'activity',
-          'title' => $book->title->value,
+          'title' => $book->getTitle(),
           'field_start_date' => (new \DateTimeImmutable())->format('Y-m-d'),
           'field_book' => ['target_id' => $book->id()],
           'field_status' => ['target_id' => $this->getStatusByName('Reading')],

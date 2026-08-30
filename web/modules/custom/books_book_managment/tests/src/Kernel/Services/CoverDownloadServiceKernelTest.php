@@ -24,6 +24,7 @@ class CoverDownloadServiceKernelTest extends KernelTestBase {
     'file',
     'field',
     'user',
+    'isbn',
     'books_book_managment',
   ];
 

@@ -91,28 +91,6 @@ class CoverDownloadServiceTest extends UnitTestCase {
   }
 
   /**
-   * Tests buildSourceArray() returns correct URLs.
-   *
-   * @covers ::buildSourceArray
-   */
-  public function testBuildSourceArray(): void {
-    $isbn = '9780142437247';
-
-    // Use reflection to test private method.
-    $method = new \ReflectionMethod(CoverDownloadService::class, 'buildSourceArray');
-
-    $result = $method->invoke($this->coverDownloadService, $isbn);
-
-    $this->assertCount(3, $result);
-    $this->assertStringContainsString('hachette.imgix.net', $result[0]);
-    $this->assertStringContainsString('macmillan.com', $result[1]);
-    $this->assertStringContainsString('penguinrandomhouse.com', $result[2]);
-    foreach ($result as $url) {
-      $this->assertStringContainsString($isbn, $url);
-    }
-  }
-
-  /**
    * Tests getMediaByIsbn() returns existing media.
    *
    * @covers ::getMediaByIsbn
@@ -230,11 +208,11 @@ class CoverDownloadServiceTest extends UnitTestCase {
   }
 
   /**
-   * Tests downloadBookCover() returns FALSE when all sources fail.
+   * Tests downloadBookCover() returns FALSE when the download fails.
    *
    * @covers ::downloadBookCover
    */
-  public function testDownloadBookCoverAllSourcesFail(): void {
+  public function testDownloadBookCoverReturnsFalseWhenDownloadFails(): void {
     $isbn = '9780142437247';
 
     // No existing media.
@@ -251,15 +229,62 @@ class CoverDownloadServiceTest extends UnitTestCase {
       ->with('media')
       ->willReturn($storage);
 
-    // All HTTP requests fail.
-    $this->httpClient->expects($this->exactly(3))
+    // The single supplied URL fails to download.
+    $this->httpClient->expects($this->once())
       ->method('request')
       ->willThrowException(
         new RequestException('Not found', new Request('GET', 'test'))
       );
 
-    $result = $this->coverDownloadService->downloadBookCover($isbn);
+    $result = $this->coverDownloadService->downloadBookCover($isbn, 'https://assets.hardcover.app/edition/1/cover.jpeg');
     $this->assertFalse($result);
+  }
+
+  /**
+   * Tests that a NULL image URL yields no cover rather than an error.
+   *
+   * @covers ::downloadBookCover
+   */
+  public function testDownloadBookCoverReturnsFalseWithoutUrl(): void {
+    // No existing media, so downloadBookCover() falls through to the
+    // missing-URL check.
+    $query = $this->createMock(QueryInterface::class);
+    $query->expects($this->once())->method('condition')->willReturnSelf();
+    $query->expects($this->once())->method('accessCheck')->willReturnSelf();
+    $query->expects($this->once())->method('execute')->willReturn([]);
+
+    $storage = $this->createMock(EntityStorageInterface::class);
+    $storage->expects($this->once())->method('getQuery')->willReturn($query);
+
+    $this->entityTypeManager->expects($this->any())
+      ->method('getStorage')
+      ->with('media')
+      ->willReturn($storage);
+
+    $this->httpClient->expects($this->never())->method('request');
+
+    $this->assertFalse($this->coverDownloadService->downloadBookCover('9780765326379', NULL));
+  }
+
+  /**
+   * Tests that the file extension comes from the response Content-Type.
+   *
+   * Hardcover asset URLs are not guaranteed to carry a usable extension.
+   *
+   * @covers ::buildFilename
+   */
+  public function testBuildFilenameUsesContentType(): void {
+    $method = new \ReflectionMethod($this->coverDownloadService, 'buildFilename');
+
+    $name = $method->invoke(
+      $this->coverDownloadService,
+      'https://assets.hardcover.app/edition/30455612/1deeb21c.jpeg?w=400',
+      'image/jpeg',
+    );
+
+    $this->assertStringEndsWith('.jpeg', $name);
+    $this->assertStringNotContainsString('?', $name);
+    $this->assertStringNotContainsString('w=400', $name);
   }
 
 }
