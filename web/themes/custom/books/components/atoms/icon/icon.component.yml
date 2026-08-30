@@ -23,6 +23,7 @@ props:
         - collection
         - minus-circle
         - check-badge
+        - book-solid
       examples: ['book-open']
     size:
       type: string
@@ -42,6 +43,11 @@ props:
         - outline
         - solid
       examples: ['outline']
+    view_box:
+      type: string
+      title: viewBox
+      description: 'Some icons are drawn on a 20x20 grid rather than 24x24.'
+      examples: ['0 0 24 24', '0 0 20 20']
     extra_classes:
       type: string
       title: Extra classes
