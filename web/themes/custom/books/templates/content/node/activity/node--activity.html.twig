@@ -31,23 +31,32 @@
     </h3>
   </div>
 
-  {# The reading span. One line: a period, not two unrelated dates. #}
-  <div class="col-start-2 md:col-start-3 text-sm text-ink-muted">
-    <p class="flex items-center gap-2 whitespace-nowrap">
+  {#
+    The reading span: a period, not two unrelated dates. Each date stays
+    atomic, but the line is allowed to wrap between them. Holding the whole
+    span on one line sets a min-content floor the 1fr column cannot shrink
+    below, which pushed the card 34px past its own edge under ~360px.
+  #}
+  <div class="col-start-2 md:col-start-3 min-w-0 text-sm text-ink-muted">
+    <p class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       {{ include('books:icon', {
           name: 'calendar', size: 'w-4 h-4', stroke_width: '2',
           extra_classes: 'shrink-0 text-forest',
         }) }}
       {% if same_day %}
-        <span class="font-medium text-ink">{{ content.field_end_date }}</span>
+        <span class="font-medium text-ink whitespace-nowrap">{{ content.field_end_date }}</span>
       {% elseif has_end %}
-        <span class="font-medium text-ink">{{ content.field_start_date }}</span>
-        <span aria-hidden="true">&rarr;</span>
-        <span class="sr-only">{{ 'to'|t }}</span>
-        <span class="font-medium text-ink">{{ content.field_end_date }}</span>
+        <span class="font-medium text-ink whitespace-nowrap">{{ content.field_start_date }}</span>
+        {# The arrow travels with the date it points at, so a wrapped second
+           line reads as a continuation rather than starting on a bare date. #}
+        <span class="inline-flex items-center gap-2 whitespace-nowrap">
+          <span aria-hidden="true">&rarr;</span>
+          <span class="sr-only">{{ 'to'|t }}</span>
+          <span class="font-medium text-ink">{{ content.field_end_date }}</span>
+        </span>
       {% else %}
         <span>{{ 'Started'|t }}</span>
-        <span class="font-medium text-ink">{{ content.field_start_date }}</span>
+        <span class="font-medium text-ink whitespace-nowrap">{{ content.field_start_date }}</span>
       {% endif %}
     </p>
   </div>
