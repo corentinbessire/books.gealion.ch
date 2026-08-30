@@ -1,17 +1,18 @@
-{% if content.field_image | render %}
-  <div class="flex justify-center">
-    {{ content.field_image }}
-  </div>
-{% else %}
-  <div class="flex flex-wrap justify-center">
-    <div class="p-6 shadow-md rounded-full max-w-full h-auto align-middle border border-stone-300 bg-stone-200">
-      {{ include('books:icon', {
-        name: 'user',
-        size: 'h-32 w-32',
-        extra_classes: 'text-burgundy',
-      }) }}
-    </div>
-  </div>
-{% endif %}
-<h1 class="text-3xl text-center py-6 text-ink" style="font-family: var(--font-display);">{{ name }}</h1>
-<div class="text-center text-ink-muted" style="font-family: var(--font-body);">{{ content.field_bio }}</div>
+{#
+/**
+ * @file
+ * Author term page heading.
+ *
+ * Same shape as the other term pages, with the author's portrait in place of
+ * the fallback icon and the bio underneath.
+ */
+#}
+{% embed 'books:term-hero' with {
+  title: name,
+  icon: 'user',
+  image: content.field_image|render|trim is not empty,
+  below: content.field_bio|render|trim is not empty,
+} %}
+  {% block image %}{{ content.field_image }}{% endblock %}
+  {% block below %}{{ content.field_bio }}{% endblock %}
+{% endembed %}

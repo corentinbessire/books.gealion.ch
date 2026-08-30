@@ -1,10 +1,10 @@
-<div class="flex flex-wrap justify-center">
-    <div class="p-6 shadow-md rounded-full max-w-full h-auto align-middle border border-stone-300 bg-stone-200">
-      {{ include('books:icon', {
-        name: 'tag',
-        size: 'h-32 w-32',
-        extra_classes: 'text-burgundy',
-      }) }}
-    </div>
-  </div>
-<h1 class="text-3xl text-center py-6 text-ink" style="font-family: var(--font-display);">{{ name }}</h1>
+{#
+/**
+ * @file
+ * genre term page heading.
+ */
+#}
+{{ include('books:term-hero', {
+  title: name,
+  icon: 'tag',
+}) }}

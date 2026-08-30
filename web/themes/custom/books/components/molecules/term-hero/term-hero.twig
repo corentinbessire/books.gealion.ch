@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * The heading block at the top of a taxonomy term page.
+ *
+ * Four term templates rendered the same circular icon and heading with only
+ * the icon path differing; this is that shape, once.
+ *
+ * Available props:
+ * - title: the term name (required).
+ * - icon: fallback icon drawn in the circle when the image slot is empty.
+ *
+ * Slots:
+ * - image: rendered instead of the icon when the term has one.
+ * - below: anything under the heading, such as a bio.
+ */
+#}
+{% if image %}
+  <div class="flex justify-center">
+    {% block image %}{% endblock %}
+  </div>
+{% else %}
+  <div class="flex flex-wrap justify-center">
+    <div class="p-6 shadow-md rounded-full max-w-full h-auto align-middle border border-stone-300 bg-stone-200">
+      {{ include('books:icon', {
+        name: icon|default('tag'),
+        size: 'h-32 w-32',
+        extra_classes: 'text-burgundy',
+      }) }}
+    </div>
+  </div>
+{% endif %}
+
+<h1 class="text-3xl text-center py-6 text-ink" style="font-family: var(--font-display);">{{ title }}</h1>
+
+{% if below %}
+  <div class="text-center text-ink-muted" style="font-family: var(--font-body);">
+    {% block below %}{% endblock %}
+  </div>
+{% endif %}
