@@ -99,9 +99,12 @@ class BookCover extends ExtraFieldPlusDisplayBase implements ContainerFactoryPlu
     $form['image_style'] = [
       '#type' => 'select',
       '#title' => t('Wrapper'),
+      // t() rather than $this->t(): this method is static, so the
+      // StringTranslationTrait is not available and a service cannot be
+      // injected. Matches the t() call on the #title line above.
       '#options' => [
-        'activity' => \Drupal::service('string_translation')->translate('activity'),
-        'reading' => \Drupal::service('string_translation')->translate('reading'),
+        'activity' => t('activity'),
+        'reading' => t('reading'),
       ],
     ];
 
