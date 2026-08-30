@@ -44,7 +44,7 @@ class ActivityStatusServiceTest extends KernelTestBase {
   /**
    * Status term ids keyed by name.
    *
-   * @var array
+   * @var array<string, string>
    */
   protected array $status = [];
 

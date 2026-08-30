@@ -12,7 +12,7 @@ class StubActivitiesController extends ControllerBase {
   /**
    * Returns an empty page.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A render array.
    */
   public function page(): array {
