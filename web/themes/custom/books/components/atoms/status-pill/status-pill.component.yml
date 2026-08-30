@@ -1,0 +1,24 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/11.x/core/lib/Drupal/Core/Component/metadata.schema.json'
+name: Status pill
+status: stable
+description: 'A small coloured badge naming a reading status.'
+variants:
+  success:
+    title: Success
+    description: 'A finished book.'
+  error:
+    title: Error
+    description: 'An abandoned book.'
+  neutral:
+    title: Neutral
+    description: 'Anything still in progress or not yet started.'
+props:
+  type: object
+  required:
+    - label
+  properties:
+    label:
+      type: string
+      title: Label
+      description: 'The status name shown in the pill.'
+      examples: ['Finished', 'Reading']

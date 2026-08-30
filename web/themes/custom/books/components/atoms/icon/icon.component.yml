@@ -24,6 +24,7 @@ props:
         - minus-circle
         - check-badge
         - book-solid
+        - book-open-solid
       examples: ['book-open']
     size:
       type: string
