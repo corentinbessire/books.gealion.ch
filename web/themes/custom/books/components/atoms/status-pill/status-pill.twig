@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * A small coloured badge naming a reading status.
+ *
+ * Rendered as a span, not a button: it reports state and does nothing when
+ * clicked, so a button would be a keyboard and screen-reader trap.
+ *
+ * Available props:
+ * - label: the status name (required).
+ *
+ * Variants: success, error, neutral (default).
+ */
+#}
+{% set variant = variant|default('neutral') %}
+
+{% set styles = {
+  'success': {classes: 'bg-emerald-500 border-emerald-600 text-white', icon: 'check-badge'},
+  'error':   {classes: 'bg-rose-500 border-rose-600 text-white',       icon: 'minus-circle'},
+  'neutral': {classes: 'bg-amber-400 border-amber-500 text-stone-800', icon: 'book-open-solid'},
+} %}
+{% set style = styles[variant] %}
+
+<span {{ attributes|default(create_attribute())
+  .addClass(['inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1.5', 'rounded-lg', 'shadow-sm', 'border-b-4'])
+  .addClass(style.classes|split(' ')) }}>
+  {{ include('books:icon', {
+    name: style.icon,
+    fill: 'solid',
+    size: 'size-6',
+  }) }}
+  {{ label }}
+</span>
