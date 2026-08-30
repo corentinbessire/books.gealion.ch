@@ -1,0 +1,49 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/11.x/core/lib/Drupal/Core/Component/metadata.schema.json'
+name: Icon
+status: stable
+description: 'A single inline SVG icon from the theme''s set, sized by utility class.'
+props:
+  type: object
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      title: Name
+      description: 'Which icon to draw.'
+      enum:
+        - book-open
+        - calendar
+        - check-circle
+        - camera
+        - close
+        - user
+        - tag
+        - building
+        - collection
+        - minus-circle
+        - check-badge
+      examples: ['book-open']
+    size:
+      type: string
+      title: Size classes
+      description: 'Tailwind sizing utilities. Defaults to a 6-unit square.'
+      examples: ['h-5 w-5', 'h-32 w-32']
+    stroke_width:
+      type: string
+      title: Stroke width
+      description: 'Only used by the outline icons.'
+      examples: ['1.5', '2']
+    fill:
+      type: string
+      title: Fill style
+      description: 'outline draws with stroke, solid draws with currentColor fill.'
+      enum:
+        - outline
+        - solid
+      examples: ['outline']
+    extra_classes:
+      type: string
+      title: Extra classes
+      description: 'Colour or spacing utilities applied to the svg element.'
+      examples: ['text-burgundy']
