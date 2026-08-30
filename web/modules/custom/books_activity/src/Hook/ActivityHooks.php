@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_activity\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
