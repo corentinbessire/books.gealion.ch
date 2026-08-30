@@ -1,0 +1,26 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/11.x/core/lib/Drupal/Core/Component/metadata.schema.json'
+name: Term hero
+status: stable
+description: 'The heading block at the top of a taxonomy term page: a circular icon or image, then the term name.'
+props:
+  type: object
+  required:
+    - title
+  properties:
+    title:
+      type: string
+      title: Title
+      description: 'The term name.'
+      examples: ['Brandon Sanderson']
+    icon:
+      type: string
+      title: Fallback icon
+      description: 'Drawn in the circle when no image is supplied.'
+      examples: ['user', 'tag', 'building', 'collection']
+slots:
+  image:
+    title: Image
+    description: 'Rendered instead of the icon when the term has one.'
+  below:
+    title: Below the title
+    description: 'Anything shown under the heading, such as an author bio.'
