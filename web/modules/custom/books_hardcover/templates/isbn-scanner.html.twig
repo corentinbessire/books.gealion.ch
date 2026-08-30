@@ -1,0 +1,54 @@
+{#
+/**
+ * @file
+ * Barcode scanner control for the add-book form.
+ *
+ * Lives here rather than in the theme because the form that renders it is
+ * module-owned; the theme may override this file. The SVGs stay inline for
+ * the same reason — reaching for the theme's books:icon component would
+ * point a module at a theme.
+ *
+ * The Alpine scope (x-data="isbnScanner") is set on the form element itself,
+ * so this markup assumes it is rendered inside that form.
+ *
+ * Available variables:
+ * - scan_label: label for the button that opens the camera.
+ * - hint: instruction shown under the viewfinder.
+ * - close_label: accessible label for the close button.
+ * - starting_label: shown while the camera is warming up.
+ */
+#}
+<button type="button" x-on:click="start()"
+  class="mt-2 inline-flex items-center gap-2 rounded-md border border-burgundy bg-cream px-3.5 py-2.5 text-sm font-semibold text-burgundy shadow-sm hover:bg-parchment focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-burgundy">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+  </svg>
+  {{ scan_label }}
+</button>
+
+<template x-teleport="body">
+  <div x-show="open" x-cloak style="display:none" class="fixed inset-0 z-50 bg-black">
+    <!-- Camera preview fills the whole screen. -->
+    <video x-ref="video" playsinline muted class="absolute inset-0 h-full w-full object-cover"></video>
+
+    <!-- Aiming frame, dimming everything around it. -->
+    <div class="pointer-events-none absolute inset-x-8 top-1/2 h-36 -translate-y-1/2 rounded-xl border-2 border-white/80 shadow-[0_0_0_100vmax_rgba(0,0,0,0.45)]"></div>
+
+    <!-- Floating close button (respects the notch / safe areas). -->
+    <button type="button" x-on:click="stop()" aria-label="{{ close_label }}"
+      class="absolute z-10 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 active:scale-95"
+      style="top:max(1rem,env(safe-area-inset-top));right:max(1rem,env(safe-area-inset-right));">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-6 w-6" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+
+    <!-- Status line at the bottom; only one shows at a time. -->
+    <div class="absolute inset-x-0 bottom-0 p-6 text-center text-sm" style="padding-bottom:max(1.5rem,env(safe-area-inset-bottom))">
+      <p x-show="starting" class="text-white/80">{{ starting_label }}</p>
+      <p x-show="error" x-text="error" class="text-red-300"></p>
+      <p x-show="!starting && !error" class="text-white/90">{{ hint }}</p>
+    </div>
+  </div>
+</template>
