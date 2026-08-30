@@ -2,6 +2,7 @@
 
 namespace Drupal\books_activity\Plugin\ExtraField\Display;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\extra_field\Attribute\ExtraFieldDisplay;
@@ -59,16 +60,27 @@ class BookCover extends ExtraFieldPlusDisplayBase implements ContainerFactoryPlu
   public function view(ContentEntityInterface $entity) {
     $settings = $this->getEntityExtraFieldSettings();
 
-    $book = $this->getFirstReference($entity, 'field_book');
-    if (!$book) {
-      return [];
+    // The cover is reached through the activity's book, so the result depends
+    // on entities the render pipeline never sees. The dependencies are
+    // collected on every path, including the empty ones: without them a
+    // cached "no cover" result would never notice the book gaining one.
+    $cache = new CacheableMetadata();
+    $cache->addCacheableDependency($entity);
+
+    $build = [];
+    if ($book = $this->getFirstReference($entity, 'field_book')) {
+      $cache->addCacheableDependency($book);
+
+      if ($cover = $this->getFirstReference($book, 'field_cover')) {
+        $cache->addCacheableDependency($cover);
+        $build = $this->entityTypeManager->getViewBuilder('media')
+          ->view($cover, $settings['image_style']);
+      }
     }
-    $cover = $this->getFirstReference($book, 'field_cover');
-    if (!$cover) {
-      return [];
-    }
-    return $this->entityTypeManager->getViewBuilder('media')
-      ->view($cover, $settings['image_style']);
+
+    $cache->applyTo($build);
+
+    return $build;
   }
 
   /**
