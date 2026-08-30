@@ -4,6 +4,8 @@ namespace Drupal\books_activity\Plugin\ExtraField\Display;
 
 use Drupal\books_activity\Services\ActivityStatusService;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\extra_field\Attribute\ExtraFieldDisplay;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -17,16 +19,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Only shown for an activity still being read, and only to users who may edit
  * activities. ActivityController enforces the same rule, because hiding a
  * button does not protect the route behind it.
- *
- * @ExtraFieldDisplay(
- *   id = "activity_actions",
- *   label = @Translation("Reading actions"),
- *   description = @Translation("Mark as read / Abandoned buttons for an
- *   activity still being read."), bundles = {
- *     "node.activity",
- *   }
- * )
  */
+#[ExtraFieldDisplay(
+  id: "activity_actions",
+  label: new TranslatableMarkup("Reading actions"),
+  description: new TranslatableMarkup("Mark as read / Abandoned buttons for an activity still being read."),
+  bundles: ["node.activity"],
+)]
 class ActivityActions extends ExtraFieldPlusDisplayBase implements ContainerFactoryPluginInterface {
 
   /**
