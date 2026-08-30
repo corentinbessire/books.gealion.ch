@@ -1,0 +1,11 @@
+services:
+  books_catalog.books:
+    class: Drupal\books_catalog\Services\BookService
+    arguments:
+      - '@logger.factory'
+      - '@entity_type.manager'
+      - '@books_catalog.taxonomy'
+  books_catalog.taxonomy:
+    class: Drupal\books_catalog\Services\TaxonomyService
+    arguments:
+      - '@entity_type.manager'

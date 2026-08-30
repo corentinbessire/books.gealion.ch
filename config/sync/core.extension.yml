@@ -5,6 +5,9 @@ module:
   block: 0
   books_activity: 0
   books_book_managment: 0
+  books_catalog: 0
+  books_cover: 0
+  books_hardcover: 0
   breakpoint: 0
   ckeditor5: 0
   ctools: 0

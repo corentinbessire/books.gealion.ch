@@ -1,0 +1,9 @@
+name: 'Books - Hardcover'
+type: module
+description: 'Imports book data and covers from the Hardcover GraphQL API. The only module that knows Hardcover exists; nothing depends on it.'
+package: Books
+core_version_requirement: ^10 || ^11
+dependencies:
+  - books_catalog:books_catalog
+  - books_cover:books_cover
+  - isbn:isbn

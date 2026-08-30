@@ -1,22 +1,9 @@
 services:
-  books.hardcover:
-    class: Drupal\books_book_managment\Services\HardcoverService
-    arguments:
-      - '@http_client'
-      - '@logger.factory'
-      - '@settings'
-      - '@isbn.isbn_service'
-      - '@datetime.time'
+  # Aliases so consumers not yet migrated keep resolving. Removed in the
+  # follow-up that retires this module.
   books.books_utils:
-    class: Drupal\books_book_managment\Services\BooksUtilsService
-    arguments:
-      - '@logger.factory'
-      - '@entity_type.manager'
-      - '@queue'
+    alias: books_catalog.books
   books.cover_download:
-    class: Drupal\books_book_managment\Services\CoverDownloadService
-    arguments:
-      - '@http_client'
-      - '@logger.factory'
-      - '@entity_type.manager'
-      - '@file.repository'
+    alias: books_cover.downloader
+  books.hardcover:
+    alias: books_hardcover.client

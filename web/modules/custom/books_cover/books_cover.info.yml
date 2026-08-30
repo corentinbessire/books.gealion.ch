@@ -1,0 +1,8 @@
+name: 'Books - Cover'
+type: module
+description: 'Fetches a book cover from a URL and stores it as a media entity. Independent of any particular data source.'
+package: Books
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:media
+  - drupal:file

@@ -1,0 +1,14 @@
+services:
+  books_hardcover.client:
+    class: Drupal\books_hardcover\Services\HardcoverService
+    arguments:
+      - '@http_client'
+      - '@logger.factory'
+      - '@settings'
+      - '@isbn.isbn_service'
+      - '@datetime.time'
+  books_hardcover.sync:
+    class: Drupal\books_hardcover\Services\BookSyncService
+    arguments:
+      - '@entity_type.manager'
+      - '@queue'

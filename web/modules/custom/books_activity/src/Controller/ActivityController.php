@@ -6,7 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\books_activity\Services\ActivityStatusService;
-use Drupal\books_book_managment\Services\BooksUtilsService;
+use Drupal\books_catalog\Services\BookService;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -24,7 +24,7 @@ class ActivityController extends ControllerBase {
    *   The entity type manager.
    * @param \Drupal\Core\Messenger\MessengerInterface $messengerInterface
    *   Drupal Messenger Service.
-   * @param \Drupal\books_book_managment\Services\BooksUtilsService $booksUtilsService
+   * @param \Drupal\books_catalog\Services\BookService $bookService
    *   Custom Books Utilitary service.
    * @param \Drupal\isbn\IsbnToolsServiceInterface $isbnToolsService
    *   ISBN Tools service.
@@ -36,7 +36,7 @@ class ActivityController extends ControllerBase {
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     protected MessengerInterface $messengerInterface,
-    protected BooksUtilsService $booksUtilsService,
+    protected BookService $bookService,
     private IsbnToolsServiceInterface $isbnToolsService,
     protected RequestStack $requestStack,
     protected ActivityStatusService $activityStatus,
@@ -51,7 +51,7 @@ class ActivityController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('messenger'),
-      $container->get('books.books_utils'),
+      $container->get('books_catalog.books'),
       $container->get('isbn.isbn_service'),
       $container->get('request_stack'),
       $container->get('books_activity.status'),
@@ -63,7 +63,7 @@ class ActivityController extends ControllerBase {
    */
   public function new(string $isbn) {
     if ($this->isbnToolsService->isValidIsbn($isbn)) {
-      if ($book = $this->booksUtilsService->getBook($isbn)) {
+      if ($book = $this->bookService->getBook($isbn)) {
         // A book already being read must not gain a second reading activity.
         // The button hides itself in that case, but the route is reachable
         // directly, so this is where it is actually enforced.

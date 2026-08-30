@@ -1,0 +1,10 @@
+services:
+  books_hardcover.commands:
+    class: \Drupal\books_hardcover\Commands\BooksHardcoverCommands
+    tags:
+      - { name: drush.command }
+    arguments:
+      - '@books_hardcover.sync'
+      - '@books_catalog.books'
+      - '@queue'
+      - '@plugin.manager.queue_worker'

@@ -1,11 +1,9 @@
-name: Books - Book Management
+name: 'Books - Book Management (retiring)'
 type: module
-description: Provides book management features including ISBN lookup, cover downloads, and data import from external APIs.
+description: 'Empty shell kept only so the update-hook history survives and old service IDs keep resolving. Its code now lives in books_catalog, books_cover and books_hardcover. Remove once every consumer uses the new IDs.'
 package: Books
 core_version_requirement: ^10 || ^11
 dependencies:
-  - drupal:node
-  - drupal:taxonomy
-  - drupal:media
-  - drupal:file
-  - drupal:isbn
+  - books_catalog:books_catalog
+  - books_cover:books_cover
+  - books_hardcover:books_hardcover

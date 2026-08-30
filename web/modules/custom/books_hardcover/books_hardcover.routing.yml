@@ -1,0 +1,14 @@
+books_hardcover.add_book:
+  path: '/add-book'
+  defaults:
+    _title: 'Add book'
+    _form: 'Drupal\books_hardcover\Form\AddBookForm'
+  requirements:
+    _permission: 'create book content'
+books_hardcover.update_books:
+  path: '/admin/content/books/update'
+  defaults:
+    _title: 'Update Books'
+    _form: 'Drupal\books_hardcover\Form\UpdateBookForm'
+  requirements:
+    _permission: 'edit any book content'

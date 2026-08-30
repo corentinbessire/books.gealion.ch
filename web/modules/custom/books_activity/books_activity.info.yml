@@ -6,5 +6,5 @@ core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:node
   - drupal:taxonomy
-  - books_book_managment:books_book_managment
+  - books_catalog:books_catalog
   - isbn:isbn

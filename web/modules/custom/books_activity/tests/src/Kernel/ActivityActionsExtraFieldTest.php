@@ -40,7 +40,7 @@ class ActivityActionsExtraFieldTest extends KernelTestBase {
     'extra_field',
     'extra_field_plus',
     'books_activity',
-    'books_book_managment',
+    'books_catalog',
   ];
 
   /**
