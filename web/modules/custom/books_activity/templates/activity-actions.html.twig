@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Reading-log transitions for an activity still being read.
+ *
+ * Each button swaps itself for a Yes/Cancel pair before acting, because a
+ * single click stamps an end date.
+ *
+ * Available variables:
+ * - finish_url: URL that marks the activity as read.
+ * - abandon_url: URL that marks the activity as abandoned.
+ */
+#}
+<div class="mt-4 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+  {% for action in [
+    {url: finish_url, primary: true, label: 'Mark as read'|t, question: 'Finish it?'|t},
+    {url: abandon_url, primary: false, label: 'Abandoned'|t, question: 'Give up on it?'|t}
+  ] %}
+    <div x-data="confirmAction('{{ action.url }}')" class="inline-flex items-center gap-2">
+      <button type="button" x-show="!confirming" x-on:click="ask()"
+        class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold shadow-sm transition {{ action.primary ? 'border-burgundy bg-cream text-burgundy hover:bg-parchment' : 'border-stone-400 bg-stone-100 text-ink-muted hover:bg-stone-200' }}">
+        {{ action.label }}
+      </button>
+
+      <span x-show="confirming" x-cloak style="display:none" class="inline-flex items-center gap-2 text-sm">
+        <span class="text-ink-muted">{{ action.question }}</span>
+        <button type="button" x-on:click="go()"
+          class="rounded-md bg-burgundy px-2.5 py-1 text-sm font-semibold text-cream hover:opacity-90">{{ 'Yes'|t }}</button>
+        <button type="button" x-on:click="cancel()"
+          class="rounded-md px-2.5 py-1 text-sm text-ink-muted underline hover:text-ink">{{ 'Cancel'|t }}</button>
+      </span>
+    </div>
+  {% endfor %}
+</div>

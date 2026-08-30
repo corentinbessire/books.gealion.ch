@@ -1,0 +1,5 @@
+services:
+  books_activity.status:
+    class: Drupal\books_activity\Services\ActivityStatusService
+    arguments:
+      - '@entity_type.manager'

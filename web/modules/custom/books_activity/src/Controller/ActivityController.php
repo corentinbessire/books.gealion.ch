@@ -5,6 +5,7 @@ namespace Drupal\books_activity\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\books_activity\Services\ActivityStatusService;
 use Drupal\books_book_managment\Services\BooksUtilsService;
 use Drupal\isbn\IsbnToolsServiceInterface;
 use Drupal\node\NodeInterface;
@@ -29,6 +30,8 @@ class ActivityController extends ControllerBase {
    *   ISBN Tools service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack.
+   * @param \Drupal\books_activity\Services\ActivityStatusService $activityStatus
+   *   Shared activity status rules.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
@@ -36,6 +39,7 @@ class ActivityController extends ControllerBase {
     protected BooksUtilsService $booksUtilsService,
     private IsbnToolsServiceInterface $isbnToolsService,
     protected RequestStack $requestStack,
+    protected ActivityStatusService $activityStatus,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -50,6 +54,7 @@ class ActivityController extends ControllerBase {
       $container->get('books.books_utils'),
       $container->get('isbn.isbn_service'),
       $container->get('request_stack'),
+      $container->get('books_activity.status'),
     );
   }
 
@@ -64,7 +69,7 @@ class ActivityController extends ControllerBase {
           'title' => $book->getTitle(),
           'field_start_date' => (new \DateTimeImmutable())->format('Y-m-d'),
           'field_book' => ['target_id' => $book->id()],
-          'field_status' => ['target_id' => $this->getStatusByName('Reading')],
+          'field_status' => ['target_id' => $this->activityStatus->getStatusId(ActivityStatusService::READING)],
         ];
         $activity = $this->entityTypeManager->getStorage('node')
           ->create($values);
@@ -120,35 +125,25 @@ class ActivityController extends ControllerBase {
     if ($activity->bundle() != 'activity') {
       $this->messengerInterface
         ->addError($this->t('@label is not a valid activity.', ['@label' => $activity->label()]));
+      return;
     }
-    else {
-      $activity->field_status = ['target_id' => $this->getStatusByName($status)];
-      $activity->set('field_end_date', (new \DateTimeImmutable())->format('Y-m-d'));
-      $activity->save();
-      $this->messengerInterface
-        ->addStatus($this->t('@label has been updated.', ['@label' => $activity->label()]));
-    }
-  }
 
-  /**
-   * Get the 'Status' Term Id by Name.
-   *
-   * @param string $name
-   *   Name of the Status.
-   *
-   * @return int|null
-   *   Id of the Status Term.
-   *
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
-   */
-  protected function getStatusByName(string $name): ?int {
-    $results = $this->entityTypeManager->getStorage('taxonomy_term')->getQuery()
-      ->condition('name', $name)
-      ->condition('vid', 'sta')
-      ->accessCheck()
-      ->execute();
-    return reset($results);
+    // Only an activity still being read can be closed. Hiding the buttons is
+    // presentation; this is what stops a stray request overwriting the end
+    // date of an activity that was finished months ago.
+    if (!$this->activityStatus->isReading($activity)) {
+      $this->messengerInterface
+        ->addError($this->t('@label is not currently being read, so it cannot be updated.', [
+          '@label' => $activity->label(),
+        ]));
+      return;
+    }
+
+    $activity->field_status = ['target_id' => $this->activityStatus->getStatusId($status)];
+    $activity->set('field_end_date', (new \DateTimeImmutable())->format('Y-m-d'));
+    $activity->save();
+    $this->messengerInterface
+      ->addStatus($this->t('@label has been updated.', ['@label' => $activity->label()]));
   }
 
 }

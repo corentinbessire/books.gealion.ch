@@ -1,0 +1,7 @@
+view.activities.page_1:
+  path: '/activities'
+  defaults:
+    _title: 'Activities'
+    _controller: '\Drupal\books_activity_test\Controller\StubActivitiesController::page'
+  requirements:
+    _access: 'TRUE'

@@ -3,10 +3,9 @@
 namespace Drupal\Tests\books_activity\Unit\Controller;
 
 use Drupal\books_activity\Controller\ActivityController;
+use Drupal\books_activity\Services\ActivityStatusService;
 use Drupal\books_book_managment\Services\BooksUtilsService;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\isbn\IsbnToolsService;
@@ -59,6 +58,13 @@ class ActivityControllerTest extends UnitTestCase {
   protected $controller;
 
   /**
+   * The mocked activity status service.
+   *
+   * @var \Drupal\books_activity\Services\ActivityStatusService|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $activityStatus;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -84,12 +90,15 @@ class ActivityControllerTest extends UnitTestCase {
       ]);
     \Drupal::setContainer($container);
 
+    $this->activityStatus = $this->createMock(ActivityStatusService::class);
+
     $this->controller = new ActivityController(
       $this->entityTypeManager,
       $this->messenger,
       $this->booksUtilsService,
       $this->isbnToolsService,
-      $requestStack
+      $requestStack,
+      $this->activityStatus
     );
   }
 
@@ -118,7 +127,7 @@ class ActivityControllerTest extends UnitTestCase {
   }
 
   /**
-   * Tests updateActivity() updates valid activity.
+   * Tests updateActivity() updates an activity that is being read.
    *
    * @covers ::updateActivity
    */
@@ -126,52 +135,45 @@ class ActivityControllerTest extends UnitTestCase {
     $node = $this->createMock(NodeInterface::class);
     $node->expects($this->once())->method('bundle')->willReturn('activity');
     $node->expects($this->once())->method('save');
-    $node->expects($this->once())->method('label')->willReturn('Test Activity');
+    $node->method('label')->willReturn('Test Activity');
 
-    // Mock getStatusByName query.
-    $query = $this->createMock(QueryInterface::class);
-    $query->method('condition')->willReturnSelf();
-    $query->method('accessCheck')->willReturnSelf();
-    $query->expects($this->once())->method('execute')->willReturn([10]);
+    $this->activityStatus->expects($this->once())
+      ->method('isReading')
+      ->with($node)
+      ->willReturn(TRUE);
+    $this->activityStatus->expects($this->once())
+      ->method('getStatusId')
+      ->with('Finished')
+      ->willReturn(10);
 
-    $storage = $this->createMock(EntityStorageInterface::class);
-    $storage->expects($this->once())->method('getQuery')->willReturn($query);
-
-    $this->entityTypeManager->expects($this->any())
-      ->method('getStorage')
-      ->with('taxonomy_term')
-      ->willReturn($storage);
-
-    $this->messenger->expects($this->once())
-      ->method('addStatus');
+    $this->messenger->expects($this->once())->method('addStatus');
 
     $method = new \ReflectionMethod(ActivityController::class, 'updateActivity');
     $method->invoke($this->controller, $node, 'Finished');
   }
 
   /**
-   * Tests getStatusByName() returns term ID.
+   * Tests updateActivity() refuses an activity that is not being read.
    *
-   * @covers ::getStatusByName
+   * @covers ::updateActivity
    */
-  public function testGetStatusByName(): void {
-    $query = $this->createMock(QueryInterface::class);
-    $query->method('condition')->willReturnSelf();
-    $query->method('accessCheck')->willReturnSelf();
-    $query->expects($this->once())->method('execute')->willReturn([42]);
+  public function testUpdateActivityRefusesActivityNotBeingRead(): void {
+    $node = $this->createMock(NodeInterface::class);
+    $node->expects($this->once())->method('bundle')->willReturn('activity');
+    $node->expects($this->never())->method('save');
+    $node->method('label')->willReturn('Test Activity');
 
-    $storage = $this->createMock(EntityStorageInterface::class);
-    $storage->expects($this->once())->method('getQuery')->willReturn($query);
+    $this->activityStatus->expects($this->once())
+      ->method('isReading')
+      ->with($node)
+      ->willReturn(FALSE);
+    $this->activityStatus->expects($this->never())->method('getStatusId');
 
-    $this->entityTypeManager->expects($this->any())
-      ->method('getStorage')
-      ->with('taxonomy_term')
-      ->willReturn($storage);
+    $this->messenger->expects($this->once())->method('addError');
+    $this->messenger->expects($this->never())->method('addStatus');
 
-    $method = new \ReflectionMethod(ActivityController::class, 'getStatusByName');
-    $result = $method->invoke($this->controller, 'Reading');
-
-    $this->assertEquals(42, $result);
+    $method = new \ReflectionMethod(ActivityController::class, 'updateActivity');
+    $method->invoke($this->controller, $node, 'Finished');
   }
 
 }

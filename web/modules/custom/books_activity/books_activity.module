@@ -22,3 +22,25 @@ function books_activity_node_presave($node) {
     }
   }
 }
+
+/**
+ * Implements hook_theme().
+ *
+ * @phpstan-return array<string, array<string, mixed>>
+ */
+function books_activity_theme(): array {
+  return [
+    'activity_actions' => [
+      'variables' => [
+        'finish_url' => NULL,
+        'abandon_url' => NULL,
+      ],
+    ],
+    'book_start_action' => [
+      'variables' => [
+        'action' => NULL,
+        'url' => NULL,
+      ],
+    ],
+  ];
+}
