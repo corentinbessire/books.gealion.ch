@@ -96,6 +96,18 @@ class ActivityStatusGuardTest extends KernelTestBase {
     ])->save();
 
     FieldStorageConfig::create([
+      'field_name' => 'field_isbn',
+      'entity_type' => 'node',
+      'type' => 'string',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_isbn',
+      'entity_type' => 'node',
+      'bundle' => 'book',
+      'label' => 'ISBN',
+    ])->save();
+
+    FieldStorageConfig::create([
       'field_name' => 'field_status',
       'entity_type' => 'node',
       'type' => 'entity_reference',
@@ -240,6 +252,98 @@ class ActivityStatusGuardTest extends KernelTestBase {
     $saved = $this->reload((int) $activity->id());
     $this->assertSame($this->status['Finished'], $saved->get('field_status')->target_id);
     $this->assertSame('2021-07-07', $saved->get('field_end_date')->value);
+  }
+
+  /**
+   * Counts the activities attached to a book.
+   *
+   * @param int $bookId
+   *   The book node id.
+   *
+   * @return int
+   *   Number of activity nodes referencing it.
+   */
+  protected function countActivitiesFor(int $bookId): int {
+    $ids = $this->container->get('entity_type.manager')->getStorage('node')->getQuery()
+      ->condition('type', 'activity')
+      ->condition('field_book', $bookId)
+      ->accessCheck(FALSE)
+      ->execute();
+    return count($ids);
+  }
+
+  /**
+   * Creates a book carrying the given ISBN.
+   *
+   * @param string $isbn
+   *   ISBN-13.
+   *
+   * @return \Drupal\node\Entity\Node
+   *   The saved book.
+   */
+  protected function book(string $isbn): Node {
+    $book = Node::create([
+      'type' => 'book',
+      'title' => 'Oathbringer',
+      'field_isbn' => $isbn,
+    ]);
+    $book->save();
+    return $book;
+  }
+
+  /**
+   * Tests that starting a book that has never been read creates an activity.
+   *
+   * @covers ::new
+   */
+  public function testStartCreatesActivityForUnreadBook(): void {
+    $book = $this->book('9780765326379');
+
+    $this->controller->new('9780765326379');
+
+    $this->assertSame(1, $this->countActivitiesFor((int) $book->id()));
+  }
+
+  /**
+   * Tests that a book already being read cannot be started again.
+   *
+   * The route previously had no check at all, so hitting it twice left two
+   * concurrent reading entries for the same book.
+   *
+   * @covers ::new
+   */
+  public function testStartRefusesBookAlreadyBeingRead(): void {
+    $book = $this->book('9780765326379');
+    Node::create([
+      'type' => 'activity',
+      'title' => 'Oathbringer',
+      'field_book' => ['target_id' => $book->id()],
+      'field_status' => ['target_id' => $this->status['Reading']],
+    ])->save();
+
+    $this->controller->new('9780765326379');
+
+    $this->assertSame(1, $this->countActivitiesFor((int) $book->id()));
+  }
+
+  /**
+   * Tests that a finished book can be started again as a reread.
+   *
+   * @covers ::new
+   */
+  public function testStartAllowsRereadOfFinishedBook(): void {
+    $book = $this->book('9780765326379');
+    Node::create([
+      'type' => 'activity',
+      'title' => 'Oathbringer',
+      'field_book' => ['target_id' => $book->id()],
+      'field_status' => ['target_id' => $this->status['Finished']],
+      'field_end_date' => '2020-01-01',
+    ])->save();
+
+    $this->controller->new('9780765326379');
+
+    $this->assertSame(2, $this->countActivitiesFor((int) $book->id()));
   }
 
 }

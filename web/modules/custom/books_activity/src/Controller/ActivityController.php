@@ -64,6 +64,15 @@ class ActivityController extends ControllerBase {
   public function new(string $isbn) {
     if ($this->isbnToolsService->isValidIsbn($isbn)) {
       if ($book = $this->booksUtilsService->getBook($isbn)) {
+        // A book already being read must not gain a second reading activity.
+        // The button hides itself in that case, but the route is reachable
+        // directly, so this is where it is actually enforced.
+        if (!$book->isNew() && $this->activityStatus->getStartAction($book) === NULL) {
+          $this->messengerInterface
+            ->addError($this->t('You are already reading @title.', ['@title' => $book->label()]));
+          return $this->redirect('view.activities.page_1');
+        }
+
         $values = [
           'type' => 'activity',
           'title' => $book->getTitle(),
