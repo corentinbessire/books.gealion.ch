@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_hardcover\Commands;
 
 use Drupal\Core\Queue\DelayedRequeueException;

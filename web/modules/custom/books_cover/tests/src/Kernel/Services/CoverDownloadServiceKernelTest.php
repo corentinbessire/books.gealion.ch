@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\books_cover\Kernel\Services;
 
 use Drupal\books_cover\Services\CoverDownloadService;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_activity\Controller;
 
 use Drupal\Core\Controller\ControllerBase;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\books_catalog\Unit\Services;
 
 use Drupal\books_catalog\Services\BookService;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_activity\Plugin\ExtraField\Display;
 
 use Drupal\books_activity\Services\ActivityStatusService;

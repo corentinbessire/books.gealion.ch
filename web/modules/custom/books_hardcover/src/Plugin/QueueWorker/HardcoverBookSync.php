@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_hardcover\Plugin\QueueWorker;
 
 use Drupal\books_hardcover\Exception\HardcoverRateLimitException;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_hardcover\Form;
 
 use Drupal\books_catalog\Services\BookService;

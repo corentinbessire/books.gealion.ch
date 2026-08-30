@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\books_activity\Services;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
