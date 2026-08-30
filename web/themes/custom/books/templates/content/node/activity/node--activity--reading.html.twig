@@ -19,31 +19,7 @@
       </p>
       {{ content.field_status }}
 
-      {% if activity_actions is not empty %}
-        <div class="mt-4 flex flex-wrap items-center justify-center gap-3 md:justify-start">
-          {% for action, href in activity_actions %}
-            {% set is_finish = action == 'finish' %}
-            <div x-data="confirmAction('{{ href }}')" class="inline-flex items-center gap-2">
-              <button type="button" x-show="!confirming" x-on:click="ask()"
-                class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold shadow-sm transition {{ is_finish ? 'border-burgundy bg-cream text-burgundy hover:bg-parchment' : 'border-stone-400 bg-stone-100 text-ink-muted hover:bg-stone-200' }}">
-                {{ is_finish ? 'Mark as read'|t : 'Abandoned'|t }}
-              </button>
-
-              <span x-show="confirming" x-cloak style="display:none" class="inline-flex items-center gap-2 text-sm">
-                <span class="text-ink-muted">{{ is_finish ? 'Finish it?'|t : 'Give up on it?'|t }}</span>
-                <button type="button" x-on:click="go()"
-                  class="rounded-md bg-burgundy px-2.5 py-1 text-sm font-semibold text-cream hover:opacity-90">
-                  {{ 'Yes'|t }}
-                </button>
-                <button type="button" x-on:click="cancel()"
-                  class="rounded-md px-2.5 py-1 text-sm text-ink-muted underline hover:text-ink">
-                  {{ 'Cancel'|t }}
-                </button>
-              </span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
+      {{ content.extra_field_activity_actions }}
     </div>
   </div>
 </div>

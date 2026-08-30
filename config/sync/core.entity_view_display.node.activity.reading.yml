@@ -17,6 +17,11 @@ targetEntityType: node
 bundle: activity
 mode: reading
 content:
+  extra_field_activity_actions:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 20
+    region: content
   extra_field_book_cover:
     type: extra_field_book_cover
     settings:

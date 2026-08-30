@@ -12,14 +12,15 @@ use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
- * Kernel tests for the reading-log action links.
+ * Kernel tests for the reading-log action extra field.
  *
  * The buttons must only be offered for activities that can actually take the
  * transition, and only to users allowed to make it.
  *
  * @group books_activity
+ * @coversDefaultClass \Drupal\books_activity\Plugin\ExtraField\Display\ActivityActions
  */
-class ActivityActionsPreprocessTest extends KernelTestBase {
+class ActivityActionsExtraFieldTest extends KernelTestBase {
 
   use UserCreationTrait;
 
@@ -36,6 +37,8 @@ class ActivityActionsPreprocessTest extends KernelTestBase {
     'taxonomy',
     'datetime',
     'isbn',
+    'extra_field',
+    'extra_field_plus',
     'books_activity',
     'books_book_managment',
   ];
@@ -117,18 +120,20 @@ class ActivityActionsPreprocessTest extends KernelTestBase {
   }
 
   /**
-   * Runs the preprocess hook over a node and returns the variables.
+   * Builds the extra field for a node.
    *
    * @param \Drupal\node\Entity\Node $node
-   *   The node being rendered.
+   *   The entity being rendered.
+   * @param string $pluginId
+   *   The extra field plugin id.
    *
    * @return array<string, mixed>
-   *   The preprocessed variables.
+   *   The plugin's render array.
    */
-  protected function preprocess(Node $node): array {
-    $variables = ['node' => $node];
-    books_activity_preprocess_node($variables);
-    return $variables;
+  protected function build(Node $node, string $pluginId): array {
+    $plugin = $this->container->get('plugin.manager.extra_field_plus_display')
+      ->createInstance($pluginId);
+    return $plugin->view($node);
   }
 
   /**
@@ -138,17 +143,11 @@ class ActivityActionsPreprocessTest extends KernelTestBase {
     $this->setUpCurrentUser([], ['edit any activity content']);
     $activity = $this->activity('Reading');
 
-    $variables = $this->preprocess($activity);
+    $build = $this->build($activity, 'activity_actions');
 
-    $this->assertArrayHasKey('activity_actions', $variables);
-    $this->assertStringContainsString(
-      '/activity/' . $activity->id() . '/finish',
-      $variables['activity_actions']['finish']
-    );
-    $this->assertStringContainsString(
-      '/activity/' . $activity->id() . '/abandon',
-      $variables['activity_actions']['abandon']
-    );
+    $this->assertSame('activity_actions', $build['#theme']);
+    $this->assertStringContainsString('/activity/' . $activity->id() . '/finish', $build['#finish_url']);
+    $this->assertStringContainsString('/activity/' . $activity->id() . '/abandon', $build['#abandon_url']);
   }
 
   /**
@@ -157,8 +156,8 @@ class ActivityActionsPreprocessTest extends KernelTestBase {
   public function testClosedActivityGetsNoActions(): void {
     $this->setUpCurrentUser([], ['edit any activity content']);
 
-    $this->assertSame([], $this->preprocess($this->activity('Finished'))['activity_actions']);
-    $this->assertSame([], $this->preprocess($this->activity('Abandoned'))['activity_actions']);
+    $this->assertSame([], $this->build($this->activity('Finished'), 'activity_actions'));
+    $this->assertSame([], $this->build($this->activity('Abandoned'), 'activity_actions'));
   }
 
   /**
@@ -168,18 +167,7 @@ class ActivityActionsPreprocessTest extends KernelTestBase {
     $this->setUpCurrentUser([], ['access content']);
     $activity = $this->activity('Reading');
 
-    $this->assertSame([], $this->preprocess($activity)['activity_actions']);
-  }
-
-  /**
-   * Tests that non-activity nodes are left alone entirely.
-   */
-  public function testNonActivityNodeIsUntouched(): void {
-    $this->setUpCurrentUser([], ['edit any activity content']);
-    $book = Node::create(['type' => 'book', 'title' => 'A book']);
-    $book->save();
-
-    $this->assertArrayNotHasKey('activity_actions', $this->preprocess($book));
+    $this->assertSame([], $this->build($activity, 'activity_actions'));
   }
 
 }

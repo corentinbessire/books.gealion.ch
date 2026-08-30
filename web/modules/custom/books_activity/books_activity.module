@@ -9,9 +9,6 @@
  * @see https://www.drupal.org/node/2217931
  */
 
-use Drupal\Core\Url;
-use Drupal\node\NodeInterface;
-
 /**
  * Set the title of the Book as Activity Title.
  *
@@ -27,35 +24,23 @@ function books_activity_node_presave($node) {
 }
 
 /**
- * Implements hook_preprocess_HOOK() for node templates.
+ * Implements hook_theme().
  *
- * Offers the reading-log transitions on activities that can actually take
- * them. This is presentation only — ActivityController enforces the same rule
- * server-side, because hiding a button does not protect the route behind it.
- *
- * @phpstan-param array<string, mixed> $variables
+ * @phpstan-return array<string, array<string, mixed>>
  */
-function books_activity_preprocess_node(array &$variables): void {
-  $node = $variables['node'] ?? NULL;
-  if (!$node instanceof NodeInterface || $node->bundle() !== 'activity') {
-    return;
-  }
-
-  // Varies per user because the links are permission-gated, and per activity
-  // because a finished activity offers nothing.
-  $variables['#cache']['contexts'][] = 'user.permissions';
-  $variables['activity_actions'] = [];
-
-  if (!\Drupal::currentUser()->hasPermission('edit any activity content')) {
-    return;
-  }
-
-  if (!\Drupal::service('books_activity.status')->isReading($node)) {
-    return;
-  }
-
-  $variables['activity_actions'] = [
-    'finish' => Url::fromRoute('books_activity.finish', ['activity' => $node->id()])->toString(),
-    'abandon' => Url::fromRoute('books_activity.abandon', ['activity' => $node->id()])->toString(),
+function books_activity_theme(): array {
+  return [
+    'activity_actions' => [
+      'variables' => [
+        'finish_url' => NULL,
+        'abandon_url' => NULL,
+      ],
+    ],
+    'book_start_action' => [
+      'variables' => [
+        'action' => NULL,
+        'url' => NULL,
+      ],
+    ],
   ];
 }
