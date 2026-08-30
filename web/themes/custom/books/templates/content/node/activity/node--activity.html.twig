@@ -1,40 +1,59 @@
-<div class="activity-card bg-cream border border-stone-300 rounded-lg p-6 grid grid-cols-[auto_1fr_auto_auto] items-center gap-6 transition-all duration-300 relative overflow-hidden">
-  <!-- Book Cover Thumbnail -->
-  <div class="w-16 h-24 flex-shrink-0 rounded overflow-hidden shadow-sm">
+{#
+/**
+ * @file
+ * One entry in the reading history.
+ *
+ * Two shapes. On a phone the cover sits beside a stacked block — title, then
+ * the reading span, then the status — because four columns cannot fit in
+ * 393px and the title, which is the thing you are actually scanning for,
+ * was the column that collapsed. From md up it returns to a single row.
+ */
+#}
+{% set has_end = content.field_end_date|render|trim is not empty %}
+{# A book started and finished on the same day is one date, not a span. #}
+{% set same_day = has_end and node.field_start_date.value == node.field_end_date.value %}
+
+<div class="activity-card bg-cream border border-stone-300 rounded-lg p-4 sm:p-6
+            grid grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto_auto]
+            gap-x-4 gap-y-2 md:gap-6
+            items-start md:items-center
+            transition-all duration-300 relative overflow-hidden">
+
+  {# Cover: spans the stacked rows on mobile, one cell on desktop. #}
+  <div class="row-span-3 md:row-span-1 w-16 h-24 shrink-0 rounded overflow-hidden shadow-sm">
     {{ content.extra_field_book_cover }}
   </div>
 
-  <!-- Book Title -->
+  {# Title: wraps to two lines on mobile rather than truncating to nothing. #}
   <div class="min-w-0">
-    <h3 class="text-lg font-semibold text-ink truncate font-display">
+    <h3 class="text-lg font-semibold text-ink line-clamp-2 md:truncate font-display">
       {{ label }}
     </h3>
   </div>
 
-  <!-- Dates -->
-  <div class="text-sm text-ink-muted space-y-1">
-    <p class="flex items-center gap-2">
+  {# The reading span. One line: a period, not two unrelated dates. #}
+  <div class="col-start-2 md:col-start-3 text-sm text-ink-muted">
+    <p class="flex items-center gap-2 whitespace-nowrap">
       {{ include('books:icon', {
           name: 'calendar', size: 'w-4 h-4', stroke_width: '2',
-          extra_classes: 'text-forest',
+          extra_classes: 'shrink-0 text-forest',
         }) }}
-      <span>{{ 'Started' | t }}</span>
-      <span class="font-medium text-ink">{{ content.field_start_date }}</span>
-    </p>
-    {% if content.field_end_date | render %}
-      <p class="flex items-center gap-2">
-        {{ include('books:icon', {
-            name: 'check-circle', size: 'w-4 h-4', stroke_width: '2',
-            extra_classes: 'text-burgundy',
-          }) }}
-        <span>{{ 'Finished' | t }}</span>
+      {% if same_day %}
         <span class="font-medium text-ink">{{ content.field_end_date }}</span>
-      </p>
-    {% endif %}
+      {% elseif has_end %}
+        <span class="font-medium text-ink">{{ content.field_start_date }}</span>
+        <span aria-hidden="true">&rarr;</span>
+        <span class="sr-only">{{ 'to'|t }}</span>
+        <span class="font-medium text-ink">{{ content.field_end_date }}</span>
+      {% else %}
+        <span>{{ 'Started'|t }}</span>
+        <span class="font-medium text-ink">{{ content.field_start_date }}</span>
+      {% endif %}
+    </p>
   </div>
 
-  <!-- Status Badge -->
-  <div>
+  {# Status. #}
+  <div class="col-start-2 md:col-start-4 justify-self-start">
     {{ content.field_status }}
   </div>
 </div>
