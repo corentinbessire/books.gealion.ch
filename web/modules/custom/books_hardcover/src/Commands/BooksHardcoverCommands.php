@@ -10,6 +10,7 @@ use Drupal\Core\Queue\RequeueException;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\books_catalog\Services\BookService;
 use Drupal\books_hardcover\Services\BookSyncService;
+use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -78,21 +79,13 @@ class BooksHardcoverCommands extends DrushCommands {
    * @param array $options
    *   Command options.
    *
-   * @option nid
-   *   Sync only this node ID.
-   * @option run
-   *   Drain the queue immediately instead of waiting for cron.
-   *
-   * @usage books:sync
-   *   Queue every book and let cron drain the queue.
-   * @usage books:sync --run
-   *   Queue every book and process them now.
-   *
-   * @command books:sync
-   * @aliases bs
-   *
    * @phpstan-param array{nid?: int|string|null, run?: bool} $options
    */
+  #[CLI\Command(name: 'books:sync', aliases: ['bs'])]
+  #[CLI\Option(name: 'nid', description: 'Sync only this node ID.')]
+  #[CLI\Option(name: 'run', description: 'Drain the queue immediately instead of waiting for cron.')]
+  #[CLI\Usage(name: 'books:sync', description: 'Queue every book and let cron drain the queue.')]
+  #[CLI\Usage(name: 'books:sync --run', description: 'Queue every book and process them now.')]
   public function sync(array $options = ['nid' => NULL, 'run' => FALSE]): void {
     $nids = $options['nid'] ? [$options['nid']] : $this->bookService->getAllBooks();
     $queued = $this->bookSync->queueBooksForSync($nids);
@@ -109,13 +102,9 @@ class BooksHardcoverCommands extends DrushCommands {
    *
    * Covers arrive in the same request as the rest of the data, so this is a
    * normal gap-filling sync restricted to books without a cover.
-   *
-   * @usage update-cover
-   *   Queue every book missing a cover.
-   *
-   * @command update-cover
-   * @aliases buc
    */
+  #[CLI\Command(name: 'update-cover', aliases: ['buc'])]
+  #[CLI\Usage(name: 'update-cover', description: 'Queue every book missing a cover.')]
   public function updateCover(): void {
     $queued = $this->bookSync->queueBooksForSync(
       $this->bookService->getBooksMissingCover()
