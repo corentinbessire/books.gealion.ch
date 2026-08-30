@@ -3,7 +3,7 @@
     <!-- Active Filters Display -->
     <div class="py-3 px-4 bg-cream border border-stone-300 rounded-lg mb-4" x-show="selectedFilters.length > 0" x-cloak>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm text-ink-muted font-medium" style="font-family: var(--font-accent);">Active filters:</span>
+        <span class="text-sm text-ink-muted font-medium font-accent">Active filters:</span>
         <template x-for="filter in selectedFilters" :key="filter.id">
           <button
             type="button"
@@ -34,7 +34,7 @@
         class="flex items-center justify-between w-full py-4 px-6 bg-cream border-b border-stone-300 cursor-pointer transition-colors duration-300 hover:bg-stone-200"
         @click="isOpen = !isOpen"
         :aria-expanded="isOpen">
-        <span class="text-sm font-semibold tracking-[0.1em] uppercase text-ink-muted" style="font-family: var(--font-accent);">Filters</span>
+        <span class="text-sm font-semibold tracking-[0.1em] uppercase text-ink-muted font-accent">Filters</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5 text-ink-muted transition-transform duration-300"

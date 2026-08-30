@@ -2,7 +2,7 @@
 
 {% if display_id == 'attachment_1' %}
   <section class="mb-10 animate-fade-in-up">
-    <h1 class="text-[1.75rem] font-semibold text-ink text-center mb-6" style="font-family: var(--font-display);">Currently Reading</h1>
+    <h1 class="text-[1.75rem] font-semibold text-ink text-center mb-6 font-display">Currently Reading</h1>
     {% if rows -%}
       {{ rows }}
     {% elseif empty -%}
@@ -11,7 +11,7 @@
   </section>
 {% else %}
   <section class="animate-fade-in-up" style="animation-delay: 0.2s;">
-    <h1 class="text-[1.75rem] font-semibold text-ink text-center mb-6" style="font-family: var(--font-display);">Reading History</h1>
+    <h1 class="text-[1.75rem] font-semibold text-ink text-center mb-6 font-display">Reading History</h1>
     {% if rows -%}
       {{ rows }}
     {% elseif empty -%}

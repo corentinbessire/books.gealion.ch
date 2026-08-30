@@ -31,10 +31,10 @@
   </div>
 {% endif %}
 
-<h1 class="text-3xl text-center py-6 text-ink" style="font-family: var(--font-display);">{{ title }}</h1>
+<h1 class="text-3xl text-center py-6 text-ink font-display">{{ title }}</h1>
 
 {% if below %}
-  <div class="text-center text-ink-muted" style="font-family: var(--font-body);">
+  <div class="text-center text-ink-muted font-body">
     {% block below %}{% endblock %}
   </div>
 {% endif %}

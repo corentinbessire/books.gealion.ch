@@ -17,6 +17,6 @@
       ? ['text-burgundy', 'nav-link--active']
       : ['text-ink-muted', 'hover:text-ink']
     %}
-    {{ link(item.title, item.url, {'class': (base_classes|merge(color_classes))|join(' '), 'style': "font-family: var(--font-accent);"}) }}
+    {{ link(item.title, item.url, {'class': (base_classes|merge(color_classes, ['font-accent']))|join(' ')}) }}
   {% endfor %}
 {% endif %}
