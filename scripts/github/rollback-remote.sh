@@ -82,7 +82,7 @@ $DRUSH state:set system.maintenance_mode 1
 # Create backup of current state before rollback
 log_message "💾 Creating backup of current state..."
 BACKUP_NAME="pre_rollback_${TIMESTAMP}"
-$DRUSH sql:dump --gzip --result-file="${DUMPS_DIR}/${BACKUP_NAME}.sql"
+$DRUSH sql:dump --gzip --structure-tables-list="cache,cache_*,sessions,watchdog" --result-file="${DUMPS_DIR}/${BACKUP_NAME}.sql"
 
 # Restore previous database
 log_message "🔄 Restoring previous database..."
