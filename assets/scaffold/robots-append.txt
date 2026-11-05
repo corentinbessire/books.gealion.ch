@@ -1,0 +1,6 @@
+
+# Faceted listings: every filter combination is its own URL, an endless crawl.
+Disallow: /*?f%5B
+Disallow: /*?f[
+Disallow: /*&f%5B
+Disallow: /*&f[

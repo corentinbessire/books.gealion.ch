@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "67a16f39260de328e320cf69c8e30647",
+    "content-hash": "dec215eddc22c3d2927465eb26974420",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -2967,7 +2967,8 @@
             "homepage": "https://www.drupal.org/project/search_api",
             "support": {
                 "source": "https://git.drupalcode.org/project/search_api"
-            }
+            },
+            "published-time": "2026-10-28T09:14:58+00:00"
         },
         {
             "name": "drupal/token",
@@ -9008,12 +9009,12 @@
             "version": "v5.6.4",
             "source": {
                 "type": "git",
-                "url": "https://github.com/vlucas/phpdotenv.git",
+                "url": "https://github.com/phpdotenv/phpdotenv.git",
                 "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/416df702837983f8d5ff48c9c3fee4f5f57b980b",
+                "url": "https://api.github.com/repos/phpdotenv/phpdotenv/zipball/416df702837983f8d5ff48c9c3fee4f5f57b980b",
                 "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b",
                 "shasum": ""
             },
@@ -10948,7 +10949,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-05T06:31:06+00:00"
+            "time": "2026-07-05T06:31:06+00:00",
+            "published-time": "2026-07-05T06:31:19+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
@@ -13010,5 +13012,5 @@
         "ext-json": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
