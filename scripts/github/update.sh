@@ -56,7 +56,9 @@ $DRUSH state:set system.maintenance_mode 1
 # Database backup
 BACKUP_FILE="${DEPLOY_PATH}/dumps/dump_${TIMESTAMP}.sql"
 log_message "💾 Creating database backup..."
-$DRUSH sql:dump --gzip --result-file="$BACKUP_FILE"
+# Cache tables are dumped as structure only: their rows are disposable and
+# once grew past 20 GB, which made this step time out.
+$DRUSH sql:dump --gzip --structure-tables-list="cache,cache_*,sessions,watchdog" --result-file="$BACKUP_FILE"
 
 # Clear cache before update
 log_message "🧹 Clearing cache before update..."

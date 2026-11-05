@@ -9,3 +9,10 @@ services:
     class: Drupal\books_catalog\Services\TaxonomyService
     arguments:
       - '@entity_type.manager'
+  # Faceted listing URLs stay out of both page caches.
+  books_catalog.page_cache_request_policy.deny_faceted:
+    class: Drupal\books_catalog\PageCache\DenyFacetedRequests
+    public: false
+    tags:
+      - { name: page_cache_request_policy }
+      - { name: dynamic_page_cache_request_policy }
