@@ -150,7 +150,7 @@ class ActivityController extends ControllerBase {
       return;
     }
 
-    $activity->field_status = ['target_id' => $this->activityStatus->getStatusId($status)];
+    $activity->set('field_status', ['target_id' => $this->activityStatus->getStatusId($status)]);
     $activity->set('field_end_date', (new \DateTimeImmutable())->format('Y-m-d'));
     $activity->save();
     $this->messengerInterface
