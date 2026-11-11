@@ -56,14 +56,16 @@ class ActivitySyncCommands extends DrushCommands {
    * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
    *   One row per change.
    *
-   * @phpstan-param array{dry-run?: bool, format?: string} $options
+   * @phpstan-param array{dry-run?: bool, only?: string|null, format?: string} $options
    */
   #[CLI\Command(name: 'books:hardcover-activities', aliases: ['bha'])]
   #[CLI\Option(name: 'dry-run', description: 'Show what would change without changing anything.')]
+  #[CLI\Option(name: 'only', description: 'Apply only one side\'s changes: "site" or "hardcover". The rest is listed as held.')]
   #[CLI\FieldLabels(labels: ['action' => 'Action', 'book' => 'Book', 'details' => 'Details', 'result' => 'Result'])]
   #[CLI\Usage(name: 'books:hardcover-activities --dry-run', description: 'Preview the sync.')]
   #[CLI\Usage(name: 'books:hardcover-activities', description: 'Run the sync.')]
-  public function sync(array $options = ['dry-run' => FALSE, 'format' => 'table']): RowsOfFields {
+  #[CLI\Usage(name: 'books:hardcover-activities --only=site', description: 'Import from Hardcover without writing to it.')]
+  public function sync(array $options = ['dry-run' => FALSE, 'only' => NULL, 'format' => 'table']): RowsOfFields {
     $report = $this->activitySync->sync(
       (bool) $options['dry-run'],
       function (int $delay): bool {
@@ -74,6 +76,7 @@ class ActivitySyncCommands extends DrushCommands {
         sleep($delay);
         return TRUE;
       },
+      $options['only'] ?: NULL,
     );
 
     $rows = array_map(fn(array $op): array => [
@@ -94,10 +97,11 @@ class ActivitySyncCommands extends DrushCommands {
       ]));
     }
     else {
-      $this->logger()->success(dt('@done done, @failed failed, @pending pending, @reported to review.', [
+      $this->logger()->success(dt('@done done, @failed failed, @pending pending, @held held, @reported to review.', [
         '@done' => $counts['done'] ?? 0,
         '@failed' => $counts['failed'] ?? 0,
         '@pending' => $counts['pending'] ?? 0,
+        '@held' => $counts['held'] ?? 0,
         '@reported' => $counts['reported'] ?? 0,
       ]));
     }

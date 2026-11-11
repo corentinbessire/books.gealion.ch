@@ -30,6 +30,21 @@ class ActivitySyncService {
   protected const LOCK = 'books_hardcover_activity_sync';
 
   /**
+   * Restricts a run to changes on the site.
+   */
+  public const ONLY_SITE = 'site';
+
+  /**
+   * Restricts a run to changes on Hardcover.
+   */
+  public const ONLY_HARDCOVER = 'hardcover';
+
+  /**
+   * Operations that change the site; every other change is on Hardcover.
+   */
+  protected const SITE_OPS = ['pull', 'update_local'];
+
+  /**
    * Status term ids by name, loaded on demand.
    *
    * @var array<string, int|null>
@@ -97,23 +112,30 @@ class ActivitySyncService {
    *   Called with the wait in seconds when Hardcover throttles a write.
    *   Returning TRUE retries the write (the callable is expected to have
    *   waited); FALSE, or no callable, stops the run.
+   * @param string|null $only
+   *   ONLY_SITE or ONLY_HARDCOVER to apply one side's changes only; the
+   *   other side's are planned but marked held.
    *
    * @return array{ops: array<int, array<string, mixed>>, stopped: string|null}
    *   Every planned operation with a 'result' key (planned, done, failed,
-   *   pending, reported), and why the run stopped early, if it did.
+   *   pending, held, reported), and why the run stopped early, if it did.
    *
    * @throws \RuntimeException
    *   When the Hardcover library cannot be read, or a sync is already running.
    * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
    *   When Hardcover throttles the initial reads.
    */
-  public function sync(bool $dryRun = FALSE, ?callable $onRateLimit = NULL): array {
+  public function sync(bool $dryRun = FALSE, ?callable $onRateLimit = NULL, ?string $only = NULL): array {
+    if (!in_array($only, [NULL, self::ONLY_SITE, self::ONLY_HARDCOVER], TRUE)) {
+      throw new \InvalidArgumentException(sprintf('Unknown side "%s".', $only));
+    }
+
     if (!$this->lock->acquire(self::LOCK, 900)) {
       throw new \RuntimeException('An activity sync is already running.');
     }
 
     try {
-      return $this->doSync($dryRun, $onRateLimit);
+      return $this->doSync($dryRun, $onRateLimit, $only);
     }
     finally {
       $this->lock->release(self::LOCK);
@@ -127,11 +149,13 @@ class ActivitySyncService {
    *   Plan only.
    * @param callable(int): bool|null $onRateLimit
    *   Rate limit handler, see sync().
+   * @param string|null $only
+   *   Side restriction, see sync().
    *
    * @return array{ops: array<int, array<string, mixed>>, stopped: string|null}
    *   See sync().
    */
-  protected function doSync(bool $dryRun, ?callable $onRateLimit): array {
+  protected function doSync(bool $dryRun, ?callable $onRateLimit, ?string $only): array {
     $this->expectedReads = [];
     $this->createdUserBooks = [];
     $this->createdBooks = [];
@@ -158,6 +182,11 @@ class ActivitySyncService {
     foreach ($ops as &$op) {
       if (in_array($op['op'], ['conflict', 'skip'], TRUE)) {
         $op['result'] = 'reported';
+        continue;
+      }
+      $onSite = in_array($op['op'], self::SITE_OPS, TRUE);
+      if (($only === self::ONLY_SITE && !$onSite) || ($only === self::ONLY_HARDCOVER && $onSite)) {
+        $op['result'] = 'held';
         continue;
       }
       if ($stopped !== NULL) {
