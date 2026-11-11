@@ -17,6 +17,23 @@ Override it in `web/sites/default/settings.local.php` (git-ignored) or export
 the variable. Without a token every lookup logs a warning and returns no data,
 so a book sync appears to run and changes nothing. Never commit the token.
 
+### Hardcover activity sync
+
+Reading activities sync both ways with the Hardcover account behind the token.
+The sync fills gaps only: readings missing on one side are created there,
+missing dates are copied across, dates that disagree are reported, and nothing
+is deleted. Readings are matched by Hardcover book (ISBN, then title) and date,
+so the sync keeps no state and an interrupted run resumes on the next one.
+
+```bash
+ddev drush books:hardcover-activities --dry-run   # Preview
+ddev drush books:hardcover-activities             # Run (alias: bha)
+```
+
+Cron runs it hourly only when `$settings['hardcover_activity_sync']` is TRUE
+(`HARDCOVER_ACTIVITY_SYNC=true`, or set it in `settings.local.php`). Leave it
+off locally: the local token writes to the real account.
+
 ## Custom DDEV Commands
 
 ### Drush

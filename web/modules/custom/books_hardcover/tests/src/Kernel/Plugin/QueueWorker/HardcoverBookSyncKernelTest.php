@@ -31,6 +31,7 @@ class HardcoverBookSyncKernelTest extends KernelTestBase {
     'media',
     'user',
     'isbn',
+    'books_activity',
     'books_catalog',
     'books_cover',
     'books_hardcover',

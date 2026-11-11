@@ -12,3 +12,13 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@queue'
+  books_hardcover.activity_sync:
+    class: Drupal\books_hardcover\Services\ActivitySyncService
+    arguments:
+      - '@books_hardcover.client'
+      - '@entity_type.manager'
+      - '@books_activity.status'
+      - '@books_catalog.books'
+      - '@books_hardcover.sync'
+      - '@lock'
+      - '@logger.factory'
