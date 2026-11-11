@@ -14,12 +14,15 @@ use GuzzleHttp\Exception\TransferException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Reads book data from the Hardcover GraphQL API.
+ * Talks to the Hardcover GraphQL API.
  *
- * One request returns the edition, its parent work, series membership, crowd
- * tags and a cover URL. The service is deliberately unaware of queues: when
+ * Reads book data (one request returns the edition, its parent work, series
+ * membership, crowd tags and a cover URL) and reads and writes the account's
+ * reading log. The service is deliberately unaware of queues: when
  * it is throttled it throws HardcoverRateLimitException and lets the caller
  * decide.
+ *
+ * @phpstan-type ReadingLog array{user_id: int, user_books: array<int, array<string, mixed>>}
  */
 class HardcoverService {
 
@@ -93,6 +96,46 @@ class HardcoverService {
     GRAPHQL;
 
   /**
+   * Fields fetched for a user_book wherever one is read or written.
+   */
+  protected const USER_BOOK_FIELDS = 'id book_id edition_id status_id book { title } edition { isbn_13 } user_book_reads(order_by: {id: asc}) { id started_at finished_at edition_id edition { isbn_13 } }';
+
+  /**
+   * The account's whole library with its reads.
+   */
+  protected const READING_LOG_QUERY = 'query ReadingLog { me { id user_books(limit: 5000, order_by: {id: asc}) { ' . self::USER_BOOK_FIELDS . ' } } }';
+
+  /**
+   * Editions behind a list of ISBN-13s, most popular first.
+   */
+  protected const EDITIONS_QUERY = 'query EditionsByIsbn($isbns: [String!]!) { editions(where: {isbn_13: {_in: $isbns}}, order_by: {users_count: desc}) { id isbn_13 book_id } }';
+
+  /**
+   * Adds a book to the library.
+   */
+  protected const INSERT_USER_BOOK_MUTATION = 'mutation InsertUserBook($object: UserBookCreateInput!) { insert_user_book(object: $object) { id error user_book { ' . self::USER_BOOK_FIELDS . ' } } }';
+
+  /**
+   * Updates a book in the library.
+   */
+  protected const UPDATE_USER_BOOK_MUTATION = 'mutation UpdateUserBook($id: Int!, $object: UserBookUpdateInput!) { update_user_book(id: $id, object: $object) { id error user_book { ' . self::USER_BOOK_FIELDS . ' } } }';
+
+  /**
+   * Adds a read.
+   */
+  protected const INSERT_READ_MUTATION = 'mutation InsertRead($userBookId: Int!, $dates: DatesReadInput!) { insert_user_book_read(user_book_id: $userBookId, user_book_read: $dates) { id error user_book_read { id started_at finished_at edition_id } } }';
+
+  /**
+   * Updates a read.
+   */
+  protected const UPDATE_READ_MUTATION = 'mutation UpdateRead($id: Int!, $dates: DatesReadInput!) { update_user_book_read(id: $id, object: $dates) { id error user_book_read { id started_at finished_at edition_id } } }';
+
+  /**
+   * Deletes a read.
+   */
+  protected const DELETE_READ_MUTATION = 'mutation DeleteRead($id: Int!) { delete_user_book_read(id: $id) { id error } }';
+
+  /**
    * Unix timestamp before which requests must not be attempted.
    *
    * @var int
@@ -134,6 +177,240 @@ class HardcoverService {
    *   When the API rate limit is in effect.
    */
   public function getBookData(string|int $isbn): ?array {
+    $isbn13 = $this->normaliseToIsbn13((string) $isbn);
+    $isbn10 = $this->isbnTools->convertIsbn13to10($isbn13) ?? '';
+
+    $data = $this->query(self::BOOK_QUERY, ['isbn13' => $isbn13, 'isbn10' => $isbn10], 'ISBN ' . $isbn13);
+    if ($data === NULL) {
+      return NULL;
+    }
+
+    $editions = $data['editions'] ?? [];
+    if (empty($editions)) {
+      $this->loggerChannelFactory->get('HardcoverService')
+        ->notice('No Hardcover data for ISBN @isbn.', ['@isbn' => $isbn13]);
+      return NULL;
+    }
+
+    return reset($editions);
+  }
+
+  /**
+   * Gets the account's reading log: every user_book with its reads.
+   *
+   * @return ReadingLog|null
+   *   The user id and raw user_books rows, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function getReadingLog(): ?array {
+    $data = $this->query(self::READING_LOG_QUERY, [], 'reading log');
+    $me = $data['me'][0] ?? NULL;
+    if (!is_array($me) || !isset($me['id'])) {
+      return NULL;
+    }
+
+    return [
+      'user_id' => (int) $me['id'],
+      'user_books' => is_array($me['user_books'] ?? NULL) ? $me['user_books'] : [],
+    ];
+  }
+
+  /**
+   * Finds the Hardcover edition and book behind each ISBN-13.
+   *
+   * @param string[] $isbns
+   *   ISBN-13 values.
+   *
+   * @return array<int|string, array{edition_id: int, book_id: int}>
+   *   Keyed by ISBN-13 (an int key, as PHP casts digit-only strings). When
+   *   several editions share an ISBN, the most popular one wins. ISBNs
+   *   Hardcover does not know are absent.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function getEditionsByIsbn(array $isbns): array {
+    $isbns = array_values(array_unique(array_filter(array_map(
+      fn($isbn): string => $this->normaliseToIsbn13((string) $isbn),
+      $isbns,
+    ))));
+
+    $map = [];
+    // Chunked so one request never grows unbounded with the library.
+    foreach (array_chunk($isbns, 200) as $chunk) {
+      $data = $this->query(self::EDITIONS_QUERY, ['isbns' => $chunk], 'edition lookup');
+      foreach ($data['editions'] ?? [] as $edition) {
+        $isbn = $edition['isbn_13'] ?? NULL;
+        // Ordered by users_count desc, so the first edition seen wins.
+        if (is_string($isbn) && !isset($map[$isbn])) {
+          $map[$isbn] = [
+            'edition_id' => (int) $edition['id'],
+            'book_id' => (int) $edition['book_id'],
+          ];
+        }
+      }
+    }
+
+    return $map;
+  }
+
+  /**
+   * Adds a book to the account's library.
+   *
+   * @param array<string, mixed> $object
+   *   UserBookCreateInput fields.
+   *
+   * @return array<string, mixed>|null
+   *   The created user_book row with its reads, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function insertUserBook(array $object): ?array {
+    return $this->mutate('insert_user_book', 'user_book', self::INSERT_USER_BOOK_MUTATION, ['object' => $object]);
+  }
+
+  /**
+   * Updates a book in the account's library.
+   *
+   * @param int $id
+   *   The user_book id.
+   * @param array<string, mixed> $object
+   *   UserBookUpdateInput fields; only the ones sent are changed.
+   *
+   * @return array<string, mixed>|null
+   *   The updated user_book row with its reads, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function updateUserBook(int $id, array $object): ?array {
+    $variables = ['id' => $id, 'object' => $object];
+    return $this->mutate('update_user_book', 'user_book', self::UPDATE_USER_BOOK_MUTATION, $variables);
+  }
+
+  /**
+   * Adds a read to a book in the account's library.
+   *
+   * @param int $userBookId
+   *   The user_book id.
+   * @param array<string, mixed> $dates
+   *   DatesReadInput fields, such as started_at and finished_at (Y-m-d).
+   *
+   * @return array<string, mixed>|null
+   *   The created read, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function insertUserBookRead(int $userBookId, array $dates): ?array {
+    $variables = ['userBookId' => $userBookId, 'dates' => $dates];
+    return $this->mutate('insert_user_book_read', 'user_book_read', self::INSERT_READ_MUTATION, $variables);
+  }
+
+  /**
+   * Updates a read; only the fields sent are changed.
+   *
+   * @param int $id
+   *   The user_book_read id.
+   * @param array<string, mixed> $dates
+   *   DatesReadInput fields.
+   *
+   * @return array<string, mixed>|null
+   *   The updated read, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function updateUserBookRead(int $id, array $dates): ?array {
+    $variables = ['id' => $id, 'dates' => $dates];
+    return $this->mutate('update_user_book_read', 'user_book_read', self::UPDATE_READ_MUTATION, $variables);
+  }
+
+  /**
+   * Deletes a read.
+   *
+   * @param int $id
+   *   The user_book_read id.
+   *
+   * @return bool
+   *   TRUE when Hardcover confirmed the deletion.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  public function deleteUserBookRead(int $id): bool {
+    $data = $this->query(self::DELETE_READ_MUTATION, ['id' => $id], 'delete_user_book_read');
+    $result = $data['delete_user_book_read'] ?? NULL;
+    $error = match (TRUE) {
+      !is_array($result) => 'no result',
+      !empty($result['error']) => (string) $result['error'],
+      default => NULL,
+    };
+    if ($error !== NULL) {
+      $this->loggerChannelFactory->get('HardcoverService')->alert('Hardcover delete_user_book_read failed: @error', [
+        '@error' => $error,
+      ]);
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  /**
+   * Runs a library mutation and returns the row it affected.
+   *
+   * Library mutations are Hasura actions that answer HTTP 200 even when they
+   * fail; the failure is reported in their own "error" field.
+   *
+   * @param string $name
+   *   The mutation field name.
+   * @param string $rowKey
+   *   The key holding the affected row in the result.
+   * @param string $mutation
+   *   The GraphQL document.
+   * @param array<string, mixed> $variables
+   *   The variables.
+   *
+   * @return array<string, mixed>|null
+   *   The affected row, or NULL on failure.
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  protected function mutate(string $name, string $rowKey, string $mutation, array $variables): ?array {
+    $data = $this->query($mutation, $variables, $name);
+    $result = $data[$name] ?? NULL;
+
+    if (!is_array($result) || !empty($result['error']) || !is_array($result[$rowKey] ?? NULL)) {
+      $this->loggerChannelFactory->get('HardcoverService')->alert('Hardcover @name failed: @error', [
+        '@name' => $name,
+        '@error' => is_array($result) && !empty($result['error']) ? (string) $result['error'] : 'no row returned',
+      ]);
+      return NULL;
+    }
+
+    return $result[$rowKey];
+  }
+
+  /**
+   * Sends one GraphQL request and returns its data.
+   *
+   * @param string $query
+   *   The GraphQL document.
+   * @param array<string, mixed> $variables
+   *   The variables.
+   * @param string $context
+   *   What the request is for, used in log messages.
+   *
+   * @return array<string, mixed>|null
+   *   The "data" member, or NULL on any failure (which is logged).
+   *
+   * @throws \Drupal\books_hardcover\Exception\HardcoverRateLimitException
+   *   When the API rate limit is in effect.
+   */
+  protected function query(string $query, array $variables, string $context): ?array {
     $logger = $this->loggerChannelFactory->get('HardcoverService');
 
     $token = $this->settings->get('hardcover_api_token');
@@ -147,9 +424,6 @@ class HardcoverService {
       throw new HardcoverRateLimitException($this->throttledUntil - $now);
     }
 
-    $isbn13 = $this->normaliseToIsbn13((string) $isbn);
-    $isbn10 = $this->isbnTools->convertIsbn13to10($isbn13) ?? '';
-
     try {
       $response = $this->httpClient->request('POST', self::API_ENDPOINT, [
         'headers' => [
@@ -158,8 +432,10 @@ class HardcoverService {
           'User-Agent' => self::USER_AGENT,
         ],
         'json' => [
-          'query' => self::BOOK_QUERY,
-          'variables' => ['isbn13' => $isbn13, 'isbn10' => $isbn10],
+          'query' => $query,
+          // An empty PHP array would encode as a JSON list, which GraphQL
+          // rejects as variables.
+          'variables' => $variables === [] ? new \stdClass() : $variables,
         ],
         'http_errors' => FALSE,
       ]);
@@ -181,9 +457,9 @@ class HardcoverService {
     }
 
     if ($response->getStatusCode() !== 200) {
-      $logger->alert('Hardcover API returned HTTP @code for ISBN @isbn.', [
+      $logger->alert('Hardcover API returned HTTP @code for @context.', [
         '@code' => $response->getStatusCode(),
-        '@isbn' => $isbn13,
+        '@context' => $context,
       ]);
       return NULL;
     }
@@ -192,20 +468,14 @@ class HardcoverService {
 
     $data = json_decode((string) $response->getBody(), TRUE);
     if (!empty($data['errors'])) {
-      $logger->alert('Hardcover API error for ISBN @isbn : @error', [
-        '@isbn' => $isbn13,
+      $logger->alert('Hardcover API error for @context : @error', [
+        '@context' => $context,
         '@error' => json_encode($data['errors']),
       ]);
       return NULL;
     }
 
-    $editions = $data['data']['editions'] ?? [];
-    if (empty($editions)) {
-      $logger->notice('No Hardcover data for ISBN @isbn.', ['@isbn' => $isbn13]);
-      return NULL;
-    }
-
-    return reset($editions);
+    return is_array($data['data'] ?? NULL) ? $data['data'] : NULL;
   }
 
   /**
@@ -221,7 +491,7 @@ class HardcoverService {
    * @return string
    *   The ISBN-13, or the cleaned input when it cannot be converted.
    */
-  protected function normaliseToIsbn13(string $isbn): string {
+  public function normaliseToIsbn13(string $isbn): string {
     $isbn = preg_replace('/[^0-9Xx]/', '', $isbn);
 
     if (strlen($isbn) === 10) {
