@@ -1,5 +1,5 @@
 {
-    "_hash": "b8cbc9c412ff8dd91291bca8da9e8e9b1aed7235214d29030d9b3e853692e241",
+    "_hash": "613029b8da2040a2e1196c0c786e61da773d0a6c85d1323efaa7fd6dd72a1c29",
     "patches": {
         "drupal/webp": [
             {
@@ -7,6 +7,18 @@
                 "description": "#3561953 - PHP 8.4 implicit nullable & constructor parameter",
                 "url": "https://git.drupalcode.org/project/webp/-/commit/d3130cfa2a28a2953d51bcb32049e8928497062e.diff",
                 "sha256": "cde2ca2cc45f9c918cb74c14c0f0a1dc286e924c91091efcb697c268c5155eb4",
+                "depth": 1,
+                "extra": {
+                    "provenance": "root"
+                }
+            }
+        ],
+        "drupal/gin": [
+            {
+                "package": "drupal/gin",
+                "description": "#3591598 - Null langcode in views-view-field--status (PHP 8.5 deprecation)",
+                "url": "patches/gin_status_null_langcode.patch",
+                "sha256": "eeac7ad0782453abc1f2e2cf2e4193b5776714544ba56860f1a16b621fbe1a61",
                 "depth": 1,
                 "extra": {
                     "provenance": "root"
