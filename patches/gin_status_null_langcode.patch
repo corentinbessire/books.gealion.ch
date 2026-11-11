@@ -1,0 +1,13 @@
+diff --git a/templates/views/views-view-field--status.html.twig b/templates/views/views-view-field--status.html.twig
+index 0ac9959bbc45a329178dc7f7787ac81408d9240a..8c08de880b086a29a18aa74b0d92296adf042722 100644
+--- a/templates/views/views-view-field--status.html.twig
++++ b/templates/views/views-view-field--status.html.twig
+@@ -21,7 +21,7 @@
+  */
+ #}
+ {% set entity = row._entity %}
+-{% if entity.hasTranslation(row.node_field_data_langcode) %}
++{% if row.node_field_data_langcode is not null and entity.hasTranslation(row.node_field_data_langcode) %}
+   {% set entity = row._entity.getTranslation(row.node_field_data_langcode) %}
+ {% endif %}
+ 

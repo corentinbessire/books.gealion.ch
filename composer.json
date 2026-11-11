@@ -123,6 +123,9 @@
         "patches": {
             "drupal/webp": {
                 "#3561953 - PHP 8.4 implicit nullable & constructor parameter": "https://git.drupalcode.org/project/webp/-/commit/d3130cfa2a28a2953d51bcb32049e8928497062e.diff"
+            },
+            "drupal/gin": {
+                "#3591598 - Null langcode in views-view-field--status (PHP 8.5 deprecation)": "patches/gin_status_null_langcode.patch"
             }
         }
     }
