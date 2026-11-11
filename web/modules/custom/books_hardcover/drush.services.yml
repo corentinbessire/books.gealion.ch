@@ -8,3 +8,9 @@ services:
       - '@books_catalog.books'
       - '@queue'
       - '@plugin.manager.queue_worker'
+  books_hardcover.activity_commands:
+    class: \Drupal\books_hardcover\Commands\ActivitySyncCommands
+    tags:
+      - { name: drush.command }
+    arguments:
+      - '@books_hardcover.activity_sync'

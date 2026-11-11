@@ -39,6 +39,9 @@ $settings['migrate_node_migrate_type_classic'] = FALSE;
 // API keys — override in settings.local.php or via environment variables.
 // Without a token every Hardcover lookup is a silent no-op.
 $settings['hardcover_api_token'] = getenv('HARDCOVER_API_TOKEN') ?: '';
+// Hourly two-way sync of reading activities with Hardcover, from cron. Off
+// unless enabled, so a copy of production never writes to the account.
+$settings['hardcover_activity_sync'] = filter_var(getenv('HARDCOVER_ACTIVITY_SYNC'), FILTER_VALIDATE_BOOLEAN);
 
 // Automatically generated include for settings managed by ddev.
 $ddev_settings = dirname(__FILE__) . '/settings.ddev.php';
