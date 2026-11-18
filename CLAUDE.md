@@ -1,5 +1,16 @@
 # Project Notes
 
+## Status: Archived
+
+This project is archived (November 2026). The library and reading log were
+moved to Hardcover, which is now the source of truth. The Hardcover activity
+sync and the migration tool used for the move were never merged. All GitHub
+Actions workflows are disabled, the local DDEV project was deleted, and
+production is due to be shut down.
+
+Don't handle dependency or core updates. The notes below describe the project
+as it was, in case it ever needs to be brought back.
+
 ## Development Environment
 
 This project uses **DDEV** for local development.
@@ -70,7 +81,7 @@ ddev cy:test         # Run Cypress tests
 ### Sync & Tools
 
 ```bash
-ddev project:sync @project.prod   # Sync local from remote (db + files)
+ddev project:sync @books.prod   # Sync local from remote (db + files)
 ddev browsersync                  # Run BrowserSync proxy on port 3000
 ```
 

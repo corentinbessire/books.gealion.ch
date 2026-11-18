@@ -2,7 +2,7 @@
 
 ## Description: Synchronize local instance with Remote environment.
 ## Usage: project:sync [environment]
-## Example: "ddev project:sync @project.prod"
+## Example: "ddev project:sync @books.prod"
 
 cd /var/www/html/web
 
